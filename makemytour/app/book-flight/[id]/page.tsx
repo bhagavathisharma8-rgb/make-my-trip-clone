@@ -33,7 +33,12 @@ export default function BookFlightPage() {
   const otherServices = 249;
   const discount = 250;
   
-  // Dynamic calculation handling all backend schema variations
+  // FIXED PERMANENTLY: Environment Aware API Router Link Switcher
+  const BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:8081"
+    : "https://make-my-trip-clone-qaq2.onrender.com";
+
+  // FIXED: Defensive price structure maps any field naming variant from your MongoDB collection documents
   const basePricePerTicket = flight 
     ? (Number(flight.price) || Number(flight.fare) || Number(flight.ticketPrice) || 3500) 
     : 3500;
@@ -50,13 +55,14 @@ export default function BookFlightPage() {
     }
     setUserEmailAddress(savedEmail);
 
-    // Pipeline 1: Pull the User's Real ID Document mapping safely
-    fetch(`https://make-my-trip-clone-qaq2.onrender.com/user/${encodeURIComponent(savedEmail)}`)
+    // Pipeline 1: Pull the User's Real ID Document mapping safely using dynamic URL roots
+    fetch(`${BASE_URL}/user/${encodeURIComponent(savedEmail)}`)
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error("Failed to resolve user details.");
       })
       .then((data) => {
+        // FIXED: Maps both serialization output types to register bookings to the right account profile history
         const resolvedUid = data.id || data._id || data.uid;
         if (resolvedUid) {
           setUserId(resolvedUid);
@@ -70,7 +76,7 @@ export default function BookFlightPage() {
       });
 
     // Pipeline 2: Pull flight data from database matching current routing ID parameter
-    fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights")
+    fetch(`${BASE_URL}/admin/flights`)
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error("Failed to fetch flight inventory.");
@@ -86,14 +92,14 @@ export default function BookFlightPage() {
         console.error("Flight details fetch error:", err);
         setLoadingData(false);
       });
-  }, [id, router]);
+  }, [id, router, BASE_URL]);
 
   const handlePaymentSubmit = async () => {
     const targetUserId = userId || localStorage.getItem("email") || "guest_user";
     setLoadingPayment(true);
 
     try {
-      const response = await fetch("https://make-my-trip-clone-qaq2.onrender.com/booking/flight", {
+      const response = await fetch(`${BASE_URL}/booking/flight`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -105,7 +111,8 @@ export default function BookFlightPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Backend failed to create booking entry.");
+        const errorText = await response.text();
+        throw new Error(errorText || "Backend failed to create booking entry.");
       }
 
       alert("Payment Successful! Your flight booking is confirmed.");
@@ -113,7 +120,7 @@ export default function BookFlightPage() {
       router.push("/profile"); 
     } catch (err: any) {
       console.error(err);
-      alert(`Booking Failed: ${err.message || "Failed to record booking with database. Please try again."}`);
+      alert(`Booking Failed: ${err.message}`);
     } finally {
       setLoadingPayment(false);
     }
@@ -269,18 +276,32 @@ export default function BookFlightPage() {
             </button>
           </div>
 
-          {/* PROMO CODES */}
+          {/* FIXED: Formatted Promo Selector Display Block rendering exactly 2 Coupon choices */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
             <h4 className="font-bold text-xs text-gray-900 mb-3 uppercase tracking-wider">🎁 Promo Codes</h4>
             <input type="text" placeholder="Enter promo code here" className="w-full border border-gray-200 rounded p-2.5 text-xs mb-4 outline-none uppercase font-semibold text-slate-700 bg-slate-50" />
-            <div className="border border-dashed border-gray-200 p-3 rounded-md bg-slate-50/50">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="radio" defaultChecked className="mt-0.5" />
-                <div>
-                  <span className="font-bold text-xs text-gray-900 block">MMTSECURE</span>
-                  <span className="text-[11px] text-slate-400 mt-1 block leading-relaxed">Get an instant discount of ₹299 on your flight booking and Trip Secure with this coupon!</span>
-                </div>
-              </label>
+            <div className="space-y-3 text-left">
+              
+              <div className="border border-dashed border-gray-200 p-3 rounded-md bg-slate-50/50">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="radio" name="promoGroup" defaultChecked className="mt-0.5" />
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">MMTSECURE</span>
+                    <span className="text-[11px] text-slate-400 mt-1 block leading-relaxed">Get an instant discount of ₹299 on your flight booking and Trip Secure with this coupon!</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="border border-dashed border-gray-200 p-3 rounded-md bg-slate-50/50">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="radio" name="promoGroup" className="mt-0.5" />
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">SPECIALUPI</span>
+                    <span className="text-[11px] text-slate-400 mt-1 block leading-relaxed">Use this code and get ₹362 instant discount on payments via UPI only!</span>
+                  </div>
+                </label>
+              </div>
+
             </div>
           </div>
         </div>
