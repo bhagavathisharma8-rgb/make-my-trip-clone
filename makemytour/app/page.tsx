@@ -24,6 +24,7 @@ export default function Home() {
   const [toCity, setToCity] = useState("");
   const [travelDate, setTravelDate] = useState("2026-07-11");
   const [travelers, setTravelers] = useState(1);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Dropdown Toggles
   const [showFromDropdown, setShowFromDropdown] = useState(false);
@@ -54,14 +55,15 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // FIXED: No longer hardcodes user authentication states if localStorage is blank
   useEffect(() => {
     const savedEmail = localStorage.getItem("email");
     if (savedEmail) {
       setIsLoggedIn(true);
       setUserEmail(savedEmail);
     } else {
-      setIsLoggedIn(true); 
-      setUserEmail("rayaappa@gmail.com");
+      setIsLoggedIn(false); 
+      setUserEmail("");
     }
   }, [modalOpen]);
 
@@ -81,16 +83,68 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearchExecute = () => {
+  // FIXED: Validates authentication status and queries backend dynamically for locations
+  const handleSearchExecute = async () => {
+    if (!isLoggedIn) {
+      alert("Please login or sign up first to search and book travel routes!");
+      setAuthView("login");
+      setModalOpen(true);
+      return;
+    }
+
     if (!toCity) {
       alert("Please select a destination city first!");
       return;
     }
-    if (currentTab === "flights") {
-      router.push(`/book-flight/skyhigh-202-id`);
-    } else {
-      router.push(`/book-hotel/luxury-palace-id`);
+
+    setSearchLoading(true);
+
+    try {
+      if (currentTab === "flights") {
+        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights");
+        if (!res.ok) throw new Error("Could not pull flight inventory records.");
+        const flights = await res.json();
+
+        // Check if there is a match matching from and to criteria strings
+        const matchedFlight = flights.find(
+          (f: any) => 
+            f.from?.toLowerCase() === fromCity.toLowerCase() && 
+            f.to?.toLowerCase() === toCity.toLowerCase()
+        );
+
+        if (matchedFlight) {
+          router.push(`/book-flight/${matchedFlight._id || matchedFlight.id}`);
+        } else {
+          alert(`There is no flight for this location (${fromCity} to ${toCity}).`);
+        }
+      } else {
+        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/hotels");
+        if (!res.ok) throw new Error("Could not pull hotel inventory records.");
+        const hotels = await res.json();
+
+        // Check if hotel location matches the requested toCity
+        const matchedHotel = hotels.find(
+          (h: any) => h.location?.toLowerCase() === toCity.toLowerCase()
+        );
+
+        if (matchedHotel) {
+          router.push(`/book-hotel/${matchedHotel._id || matchedHotel.id}`);
+        } else {
+          alert(`There is no hotel for this location (${toCity}).`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error checking availability records from database. Please ensure your backend is up.");
+    } finally {
+      setSearchLoading(false);
     }
+  };
+
+  const handleMarketingBookNow = (tab: "flights" | "hotels", destination: string) => {
+    setCurrentTab(tab);
+    setToCity(destination);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleLogout = () => {
@@ -125,7 +179,6 @@ export default function Home() {
         <div className="flex items-center gap-4 relative" ref={dropdownRef}>
           {isLoggedIn ? (
             <>
-              {/* ADMIN PORTAL BUTTON IN BLACK */}
               <Link href="/admin" className="text-xs bg-black text-slate-200 border border-slate-700/50 px-4 py-2 rounded font-bold hover:bg-slate-900 transition-all uppercase tracking-wider backdrop-blur-sm shadow-sm">
                 ADMIN PORTAL
               </Link>
@@ -133,21 +186,20 @@ export default function Home() {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="w-9 h-9 rounded-full bg-white text-emerald-800 font-bold flex items-center justify-center shadow-md text-base border border-slate-200 hover:scale-105 transition-transform"
               >
-                {userEmail ? userEmail.charAt(0).toUpperCase() : "R"}
+                {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
               </button>
               
-              {/* FIXED ADJUSTED PROFILE DIALOG WITH INCREASED MARGIN SPACE */}
               {dropdownOpen && (
                 <div className="absolute right-[-20px] top-[54px] w-64 bg-white rounded-xl shadow-2xl border border-gray-100 py-3 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-base font-extrabold text-slate-900">Raya</p>
+                    <p className="text-base font-extrabold text-slate-900">User Profile</p>
                     <p className="text-xs text-slate-400 font-medium truncate mt-0.5">{userEmail}</p>
                   </div>
                   <button 
                     onClick={() => { setDropdownOpen(false); router.push("/profile"); }} 
                     className="w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 mt-1"
                   >
-                    👤 Profile
+                    👤 Profile Dashboard
                   </button>
                   <button 
                     onClick={handleLogout} 
@@ -255,9 +307,10 @@ export default function Home() {
             {/* SEARCH BUTTON IN BLACK */}
             <button 
               onClick={handleSearchExecute}
-              className="md:col-span-2 rounded-xl flex items-center justify-center font-bold text-base uppercase tracking-wider shadow-md transition-all bg-black text-white hover:bg-slate-900 active:scale-95"
+              disabled={searchLoading}
+              className="md:col-span-2 rounded-xl flex items-center justify-center font-bold text-base uppercase tracking-wider shadow-md transition-all bg-black text-white hover:bg-slate-900 active:scale-95 disabled:bg-slate-400"
             >
-              SEARCH
+              {searchLoading ? "Checking..." : "SEARCH"}
             </button>
           </div>
         </div>
@@ -273,7 +326,7 @@ export default function Home() {
                 <p className="text-xs text-slate-400 font-medium">Get up to 20% off on domestic flights booking codes instantly.</p>
               </div>
               <div className="p-5 pt-0 text-left">
-                <button onClick={() => { setCurrentTab("flights"); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
+                <button onClick={() => handleMarketingBookNow("flights", "Goa")} className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
               </div>
             </div>
 
@@ -284,7 +337,7 @@ export default function Home() {
                 <p className="text-xs text-slate-400 font-medium">Book luxury premium hotels worldwide with exclusive promo credits.</p>
               </div>
               <div className="p-5 pt-0 text-left">
-                <button onClick={() => { setCurrentTab("hotels"); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
+                <button onClick={() => handleMarketingBookNow("hotels", "Paris")} className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
               </div>
             </div>
 
@@ -295,7 +348,7 @@ export default function Home() {
                 <p className="text-xs text-slate-400 font-medium">Exclusive flash deals on premium customized tropical holiday packages.</p>
               </div>
               <div className="p-5 pt-0 text-left">
-                <button className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
+                <button onClick={() => handleMarketingBookNow("flights", "Tokyo")} className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
               </div>
             </div>
           </div>
@@ -306,7 +359,7 @@ export default function Home() {
           <h3 className="text-lg font-bold text-slate-900 text-left tracking-tight">Popular Stay Escapes</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {staysSections.map((item, idx) => (
-              <div key={idx} onClick={() => { setCurrentTab("hotels"); setToCity(item.title.split("Around ")[1] || "Goa"); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="group h-40 rounded-xl overflow-hidden relative shadow-md cursor-pointer border border-slate-200 bg-white hover:shadow-xl transition-all">
+              <div key={idx} onClick={() => handleMarketingBookNow("hotels", item.title.split("Around ")[1] || "Goa")} className="group h-40 rounded-xl overflow-hidden relative shadow-md cursor-pointer border border-slate-200 bg-white hover:shadow-xl transition-all">
                 <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent flex items-end p-3 text-left">
                   <span className="text-white text-xs font-bold leading-tight group-hover:text-blue-300 transition-colors">{item.title}</span>
@@ -321,7 +374,7 @@ export default function Home() {
           <h3 className="text-lg font-bold text-slate-900 text-left tracking-tight">Unlock Lesser-Known Wonders of India</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {wondersOfIndia.map((item, idx) => (
-              <div key={idx} onClick={() => { setCurrentTab("flights"); setToCity(item.title.includes("Shimla") ? "Shimla" : "Delhi"); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="group h-40 rounded-xl overflow-hidden relative shadow-md cursor-pointer border border-slate-200 bg-white hover:shadow-xl transition-all">
+              <div key={idx} onClick={() => handleMarketingBookNow("flights", item.title.includes("Shimla") ? "Shimla" : "Delhi")} className="group h-40 rounded-xl overflow-hidden relative shadow-md cursor-pointer border border-slate-200 bg-white hover:shadow-xl transition-all">
                 <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent flex items-end p-3 text-left">
                   <span className="text-white text-xs font-bold leading-tight group-hover:text-blue-300 transition-colors">{item.title}</span>
