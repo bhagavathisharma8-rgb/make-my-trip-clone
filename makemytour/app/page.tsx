@@ -34,7 +34,7 @@ export default function Home() {
   const fromCityRef = useRef<HTMLDivElement>(null);
   const toCityRef = useRef<HTMLDivElement>(null);
 
-  const cities = ["Delhi", "Mumbai", "Bengaluru", "Kolkata", "Goa", "Shimla", "Paris", "Tokyo"];
+  const cities = ["Delhi", "Mumbai", "Bangaluru", "Kolkata", "Goa", "Shimla", "Paris", "Tokyo"];
 
   const staysSections = [
     { title: "Stays in & Around Delhi", img: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=400&q=80" },
