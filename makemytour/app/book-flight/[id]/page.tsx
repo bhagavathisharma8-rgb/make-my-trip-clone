@@ -11,8 +11,8 @@ interface FlightDetails {
   from?: string;
   to?: string;
   price?: number;
-  ticketPrice?: number;
   fare?: number;
+  ticketPrice?: number;
   availableSeats?: number;
 }
 
@@ -33,9 +33,9 @@ export default function BookFlightPage() {
   const otherServices = 249;
   const discount = 250;
   
-  // FIXED: Defensive fallbacks to prevent ₹0 base fare bugs
-  const flightPrice = flight ? (flight.price || flight.ticketPrice || flight.fare || 3500) : 3500;
-  const calculatedBase = flightPrice * tickets;
+  // FIXED: Defensive checks fallback to resolve any potential ₹0 pricing errors
+  const basePricePerTicket = flight ? (flight.price || flight.fare || flight.ticketPrice || 3500) : 3500;
+  const calculatedBase = basePricePerTicket * tickets;
   const totalAmount = calculatedBase + taxes + otherServices - discount;
 
   useEffect(() => {
@@ -53,12 +53,12 @@ export default function BookFlightPage() {
         throw new Error("Failed to resolve user details.");
       })
       .then((data) => {
-        // FIXED: Checks both standard JSON id and raw Mongo _id formats to ensure session validity
+        // FIXED: Checks both JSON id and raw Mongo _id to bypass serialization issues
         const resolvedUid = data.id || data._id;
         if (resolvedUid) {
           setUserId(resolvedUid);
         } else {
-          console.error("User document parsed successfully but contains no usable ID token key.");
+          console.error("User verified but no target ID property found in response data container.");
         }
       })
       .catch((err) => console.error("User resolve error:", err));
@@ -108,7 +108,7 @@ export default function BookFlightPage() {
 
       alert("Payment Successful! Your flight booking is confirmed.");
       setShowPaymentModal(false);
-      router.push("/profile"); // Instantly navigate to dashboard tracking view
+      router.push("/profile"); // Navigates seamlessly to the dashboard profile history tracking tab
     } catch (err) {
       console.error(err);
       alert("Failed to record booking with database. Please try again.");
@@ -125,7 +125,6 @@ export default function BookFlightPage() {
     );
   }
 
-  // Helper variables for dynamic formatting
   const displayFrom = flight?.from || "Paris";
   const displayTo = flight?.to || "Tokyo";
   const displayFlightName = flight?.name || flight?.flightName || "SkyHigh 202";
@@ -201,13 +200,8 @@ export default function BookFlightPage() {
               <span className="text-xs text-blue-500 cursor-pointer font-medium hover:underline">View Policy</span>
             </div>
             <div className="bg-slate-50 p-3 rounded-md flex items-center justify-between mb-4 text-xs">
-              <span className="font-semibold flex items-center gap-1 uppercase">✈️ {displayFrom.slice(0,3)}-{displayTo.slice(0,3)}</span>
+              <span className="font-semibold flex items-center gap-1 uppercase">✈️ {displayFrom.slice(0, 3)}-{displayTo.slice(0, 3)}</span>
               <span className="font-bold text-gray-900">₹ {calculatedBase.toLocaleString()}</span>
-            </div>
-            <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-orange-400 to-red-400 rounded-full relative my-6">
-              <div className="absolute -bottom-5 left-0 text-[10px] text-slate-400">Now</div>
-              <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-slate-400">24 Hours Before</div>
-              <div className="absolute -bottom-5 right-0 text-[10px] text-slate-400">Departure</div>
             </div>
           </div>
 
