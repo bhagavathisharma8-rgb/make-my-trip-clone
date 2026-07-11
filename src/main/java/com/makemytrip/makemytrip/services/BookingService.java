@@ -10,10 +10,12 @@ import com.makemytrip.makemytrip.repositories.HotelRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.Random;
 
 @Service
 public class BookingService {
@@ -27,27 +29,18 @@ public class BookingService {
     @Autowired
     private HotelRepository hotelRepository;
 
-    // Helper method to resolve user by Hex ID string or Email address string dynamically
     private Users resolveUser(String userKey) {
-        if (userKey == null) return null;
-
-        // 1. Try finding by unique MongoDB ID field mapping
+        if (userKey == null || userKey.trim().isEmpty()) return null;
         Optional<Users> userOpt = userRepository.findById(userKey);
-        if (userOpt.isPresent()) {
-            return userOpt.get();
-        }
-
-        // 2. Fallback: Try finding by unique registration Email string mapping
-        Users userByEmail = userRepository.findByEmail(userKey);
-        if (userByEmail != null) {
-            return userByEmail;
-        }
-
+        if (userOpt.isPresent()) return userOpt.get();
+        Users userByEmail = userRepository.findByEmail(userKey.trim());
+        if (userByEmail != null) return userByEmail;
         return null;
     }
 
-    // ✈️ EXECUTE FLIGHT INVENTORY DECREASE & LOG REGISTRATION
-    public Booking bookFlight(String userId, String flightId, int seats, double price) {
+    // ✈️ ENHANCED FLIGHT INVENTORY DECREASE WITH CO-TRAVELER PROFILE MAPPING
+    public Booking bookFlight(String userId, String flightId, int seats, double price,
+                              String passengerName, int passengerAge, String seatPreference, String travelDate) {
         Users user = resolveUser(userId);
         Optional<Flight> flightOptional = flightRepository.findById(flightId);
 
@@ -58,13 +51,25 @@ public class BookingService {
                 flight.setAvailableSeats(flight.getAvailableSeats() - seats);
                 flightRepository.save(flight);
 
+                // Auto-generate assigned seats numbers layout map definitions
+                Random random = new Random();
+                String seatNumber = (random.nextInt(30) + 1) +
+                        ("Window".equalsIgnoreCase(seatPreference) ? "A" : "Aisle".equalsIgnoreCase(seatPreference) ? "C" : "B");
+
                 Booking booking = new Booking();
                 booking.setType("Flight");
                 booking.setBookingId(flightId);
                 booking.setDate(LocalDateTime.now().toString());
                 booking.setQuantity(seats);
                 booking.setTotalPrice(price);
-                booking.setCancelled(false); // Ensure baseline state active
+                booking.setCancelled(false);
+
+                // Save passenger metadata attributes permanently inside document arrays
+                booking.setPassengerName(passengerName);
+                booking.setPassengerAge(passengerAge);
+                booking.setSeatPreference(seatPreference);
+                booking.setTravelDate(travelDate);
+                booking.setSeatNumber(seatNumber);
 
                 if (user.getBookings() == null) {
                     user.setBookings(new ArrayList<>());
@@ -80,7 +85,6 @@ public class BookingService {
         throw new RuntimeException("User profile or targeted flight data entry not found.");
     }
 
-    // 🏨 EXECUTE HOTEL ROOM INVENTORY DECREASE & LOG REGISTRATION
     public Booking bookHotel(String userId, String hotelId, int rooms, double price) {
         Users user = resolveUser(userId);
         Optional<Hotel> hotelOptional = hotelRepository.findById(hotelId);
@@ -98,7 +102,7 @@ public class BookingService {
                 booking.setDate(LocalDateTime.now().toString());
                 booking.setQuantity(rooms);
                 booking.setTotalPrice(price);
-                booking.setCancelled(false); // Ensure baseline state active
+                booking.setCancelled(false);
 
                 if (user.getBookings() == null) {
                     user.setBookings(new ArrayList<>());
@@ -114,11 +118,11 @@ public class BookingService {
         throw new RuntimeException("User profile or targeted hotel data entry not found.");
     }
 
-    // ❌ TASK 1 ENGINE: PROCESS AUTOMATIC CANCELLATION & CALCULATE TIMELINE REFUNDS
+    // ❌ DYNAMIC 70% REFUND POLICY CANCELLATION CALCULATOR
     public Booking cancelBooking(String userId, String bookingId, String reason) {
         Users user = resolveUser(userId);
         if (user == null) {
-            throw new RuntimeException("User profile not found.");
+            throw new RuntimeException("User profile session not found for key identifier token.");
         }
 
         if (user.getBookings() == null) {
@@ -137,31 +141,28 @@ public class BookingService {
             throw new RuntimeException("Active booking profile matching ID not found or already cancelled.");
         }
 
-        // 1. Mark cancellation metadata fields
         matchBooking.setCancelled(true);
         matchBooking.setCancellationReason(reason);
         LocalDateTime now = LocalDateTime.now();
         matchBooking.setCancelledAt(now);
-        matchBooking.setRefundStatus("SUCCESS"); // Instantly approve for simplified training check paths
-        matchBooking.setExpectedTimeline("Processed Automatically");
+        matchBooking.setRefundStatus("COMPLETED");
+        matchBooking.setExpectedTimeline("Instant Payout Succeeded");
 
-        // 2. Policy logic check: 50% refund penalty if processed within 24 hours of booking rule criteria
+        // policy enforcement rule: 70% payout if done 24 hours before flight target travel departure date
         try {
-            LocalDateTime bookingTime = LocalDateTime.parse(matchBooking.getDate());
-            long hoursElapsed = ChronoUnit.HOURS.between(bookingTime, now);
+            LocalDate targetTravelDay = LocalDate.parse(matchBooking.getTravelDate());
+            long daysToDeparture = ChronoUnit.DAYS.between(LocalDate.now(), targetTravelDay);
 
-            if (hoursElapsed <= 24) {
-                matchBooking.setRefundAmount(matchBooking.getTotalPrice() * 0.50);
+            if (daysToDeparture >= 1) {
+                matchBooking.setRefundAmount(matchBooking.getTotalPrice() * 0.70);
             } else {
-                matchBooking.setRefundAmount(matchBooking.getTotalPrice());
+                matchBooking.setRefundAmount(matchBooking.getTotalPrice() * 0.00); // No refund if processed last-minute
             }
         } catch (Exception e) {
-            matchBooking.setRefundAmount(matchBooking.getTotalPrice() * 0.50);
+            matchBooking.setRefundAmount(matchBooking.getTotalPrice() * 0.70); // Secure fallbacks
         }
 
         final Booking finalMatch = matchBooking;
-
-        // 3. Automated inventory return restock rule
         if ("Flight".equalsIgnoreCase(finalMatch.getType())) {
             flightRepository.findById(finalMatch.getBookingId()).ifPresent(f -> {
                 f.setAvailableSeats(f.getAvailableSeats() + finalMatch.getQuantity());

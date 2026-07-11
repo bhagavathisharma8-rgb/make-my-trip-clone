@@ -25,7 +25,12 @@ public class BookingController {
             int seats = Integer.parseInt(payload.get("seats").toString());
             double price = Double.parseDouble(payload.get("price").toString());
 
-            Booking booking = bookingService.bookFlight(userId, flightId, seats, price);
+            String passengerName = payload.getOrDefault("passengerName", "Guest Passenger").toString();
+            int passengerAge = Integer.parseInt(payload.getOrDefault("passengerAge", "30").toString());
+            String seatPreference = payload.getOrDefault("seatPreference", "Window").toString();
+            String travelDate = payload.getOrDefault("travelDate", "2026-07-11").toString();
+
+            Booking booking = bookingService.bookFlight(userId, flightId, seats, price, passengerName, passengerAge, seatPreference, travelDate);
             return ResponseEntity.ok(booking);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Flight booking failed: " + e.getMessage());

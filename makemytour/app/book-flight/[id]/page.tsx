@@ -23,6 +23,13 @@ export default function BookFlightPage() {
   const [userId, setUserId] = useState("");
   const [userEmailAddress, setUserEmailAddress] = useState("");
   
+  // Passenger Registration Workflow States
+  const [passengerName, setPassengerName] = useState("");
+  const [passengerAge, setPassengerAge] = useState(25);
+  const [seatPreference, setSeatPreference] = useState("Window");
+  const [travelDate, setTravelDate] = useState("2026-07-15");
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  
   // Dynamic Flight Inventory State
   const [flight, setFlight] = useState<FlightDetails | null>(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -62,7 +69,6 @@ export default function BookFlightPage() {
         throw new Error("Failed to resolve user details.");
       })
       .then((data) => {
-        // FIXED: Maps both serialization output types to register bookings to the right account profile history
         const resolvedUid = data.id || data._id || data.uid;
         if (resolvedUid) {
           setUserId(resolvedUid);
@@ -94,6 +100,27 @@ export default function BookFlightPage() {
       });
   }, [id, router, BASE_URL]);
 
+  // Operational schedule analyzer: Verifies flight availability calendar mapping rules
+  const handleCheckoutValidation = () => {
+    if (!passengerName.trim()) {
+      alert("Please enter the passenger's full name to proceed.");
+      return;
+    }
+    if (!travelDate) {
+      alert("Please choose a valid travel date departure calendar layout.");
+      return;
+    }
+
+    const day = new Date(travelDate).getDay();
+    // Schedule check constraint logic restriction rules (Simulates non-operational weekdays)
+    if (day === 2 || day === 4) { 
+      alert("There are no active scheduled flights available on this specific date choice layout option. This flight route only operates on Mondays, Wednesdays, Fridays, and weekends!");
+      return;
+    }
+
+    setShowPaymentModal(true);
+  };
+
   const handlePaymentSubmit = async () => {
     const targetUserId = userId || localStorage.getItem("email") || "guest_user";
     setLoadingPayment(true);
@@ -107,6 +134,10 @@ export default function BookFlightPage() {
           flightId: id,
           seats: tickets,
           price: totalAmount,
+          passengerName: passengerName,
+          passengerAge: passengerAge,
+          seatPreference: seatPreference,
+          travelDate: travelDate
         }),
       });
 
@@ -200,6 +231,34 @@ export default function BookFlightPage() {
             </div>
           </div>
 
+          {/* TRAVELLER METADATA ACQUISITION FORM INPUTS CONTAINER CARD */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left space-y-4">
+            <h3 className="font-black text-xs text-gray-950 uppercase tracking-wide border-b pb-2">📋 Co-Passenger Profile & Schedule Configuration</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Passenger Full Name</label>
+                <input type="text" value={passengerName} onChange={(e) => setPassengerName(e.target.value)} placeholder="Enter first and last name" className="w-full border p-2 bg-slate-50 text-black text-xs font-semibold rounded-lg outline-none focus:bg-white" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Passenger Age</label>
+                <input type="number" min={1} max={110} value={passengerAge} onChange={(e) => setPassengerAge(parseInt(e.target.value) || 25)} className="w-full border p-2 bg-slate-50 text-black text-xs font-semibold rounded-lg outline-none focus:bg-white" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Preferred Seat Position Alignment</label>
+                <select value={seatPreference} onChange={(e) => setSeatPreference(e.target.value)} className="w-full border p-2 bg-slate-50 text-black text-xs font-semibold rounded-lg outline-none focus:bg-white">
+                  <option value="Window">Window Seat View</option>
+                  <option value="Aisle">Aisle Corridor Space</option>
+                  <option value="Middle">Standard Middle Seat</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Target Departure Date</label>
+                <input type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} className="w-full border p-2 bg-slate-50 text-black text-xs font-semibold rounded-lg outline-none focus:bg-white" />
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 font-medium pt-1">⚠️ Note: Flights run exclusively on Mondays, Wednesdays, Fridays, and weekends. Alternate weekdays remain un-operational.</p>
+          </div>
+
           {/* CANCELLATION AND DATE CHANGE POLICY DISPLAYS */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left">
             <div className="flex justify-between items-center mb-4">
@@ -269,7 +328,7 @@ export default function BookFlightPage() {
             </div>
 
             <button 
-              onClick={() => setShowPaymentModal(true)}
+              onClick={handleCheckoutValidation}
               className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded shadow mt-6 text-xs uppercase tracking-wider transition-all"
             >
               Book Now
@@ -306,43 +365,44 @@ export default function BookFlightPage() {
           </div>
         </div>
 
-        {/* PAYMENT POPUP OVERLAY */}
+        {/* INTERACTIVE PAYMENT CHOOSE GATEWAY METHOD OVERLAY DISPLAY */}
         {showPaymentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-xs text-left">
-            <div className="bg-white w-full max-w-2xl rounded-lg shadow-2xl p-6 relative">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-6">
-                <h3 className="text-base font-bold text-gray-900">✈️ Flight Booking Details</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-xs text-left">
+            <div className="bg-white w-full max-w-md rounded-xl shadow-2xl p-6 relative">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+                <h3 className="text-base font-black text-gray-900">💳 Select Payment Method</h3>
                 <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
               </div>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4 mb-6">
-                <div><label className="block text-gray-400 font-medium mb-0.5">Flight Name</label><p className="font-semibold text-gray-900 capitalize">{flight ? flight.name : "SkyHigh 202"}</p></div>
-                <div><label className="block text-gray-400 font-medium mb-0.5">From</label><p className="font-semibold text-gray-900 capitalize">{flight ? flight.from : "Paris"}</p></div>
-                <div><label className="block text-gray-400 font-medium mb-0.5">To</label><p className="font-semibold text-gray-900 capitalize">{flight ? flight.to : "Tokyo"}</p></div>
-                <div><label className="block text-gray-400 font-medium mb-0.5">Departure Time</label><p className="font-semibold text-gray-900">1/21/2025 3:41:00 PM</p></div>
-                <div><label className="block text-gray-400 font-medium mb-0.5">Arrival Time</label><p className="font-semibold text-gray-900">1/23/2025 4:43:00 PM</p></div>
-                <div>
-                  <label className="block text-gray-400 font-medium mb-0.5">Number of Tickets</label>
-                  <input type="number" value={tickets} onChange={(e) => setTickets(Math.max(1, parseInt(e.target.value) || 1))} className="w-20 border border-gray-300 rounded px-2 py-1 mt-0.5 bg-white font-medium text-black outline-none" />
+              
+              <div className="space-y-3 mb-6">
+                <div onClick={() => setPaymentMethod("UPI")} className={`p-3 border rounded-xl flex items-center gap-3 cursor-pointer transition-all ${paymentMethod === 'UPI' ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200 hover:bg-slate-50'}`}>
+                  <input type="radio" checked={paymentMethod === 'UPI'} readOnly />
+                  <div>
+                    <p className="font-bold text-gray-900">Instant UPI Interface</p>
+                    <p className="text-[10px] text-slate-400">Pay securely via any BHIM UPI Application handlers</p>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-slate-50 border border-gray-100 rounded-md p-4 mb-6">
-                <h4 className="font-bold text-gray-900 mb-3">📋 Fare Summary</h4>
-                <div className="space-y-2 text-gray-500">
-                  <div className="flex justify-between"><span>Base Fare</span><span>₹ {calculatedBase.toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Taxes and Surcharges</span><span>₹ {taxes.toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Other Services</span><span>₹ {otherServices.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-emerald-600"><span>Discounts</span><span>- ₹ {discount.toLocaleString()}</span></div>
-                  <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-gray-900 text-sm">
-                    <span>Total Amount</span><span>₹ {totalAmount.toLocaleString()}</span>
+
+                <div onClick={() => setPaymentMethod("Card")} className={`p-3 border rounded-xl flex items-center gap-3 cursor-pointer transition-all ${paymentMethod === 'Card' ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200 hover:bg-slate-50'}`}>
+                  <input type="radio" checked={paymentMethod === 'Card'} readOnly />
+                  <div>
+                    <p className="font-bold text-gray-900">Credit / Debit Card</p>
+                    <p className="text-[10px] text-slate-400">All Visa, Mastercard, RuPay, and Amex nodes active</p>
                   </div>
                 </div>
               </div>
+
+              <div className="bg-slate-50 border rounded-lg p-3 mb-6 flex justify-between font-bold text-gray-900">
+                <span>Payable Amount Due:</span>
+                <span className="text-blue-600">₹ {totalAmount.toLocaleString()}</span>
+              </div>
+
               <button 
                 onClick={handlePaymentSubmit} 
                 disabled={loadingPayment}
                 className="w-full bg-slate-900 hover:bg-black disabled:bg-slate-400 text-white font-bold py-3 rounded shadow uppercase tracking-wide text-xs transition-all"
               >
-                {loadingPayment ? "Confirming Reservation..." : "Proceed to Payment"}
+                {loadingPayment ? "Authorizing Funds..." : `Pay via ${paymentMethod}`}
               </button>
             </div>
           </div>

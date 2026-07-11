@@ -16,6 +16,7 @@ public class Users {
     private String phoneNumber;
     private List<Booking> bookings;
 
+
     // Existing Getters and Setters
     public String get_id() { return _id; }
     public void set_id(String _id) { this._id = _id; }
@@ -56,6 +57,28 @@ public class Users {
         private double refundAmount = 0.0;
         private String refundStatus = "NONE";
         private String expectedTimeline;
+        // --- ADD THESE NEW PASSENGER METADATA FIELDS HERE ---
+        private String passengerName;
+        private int passengerAge;
+        private String seatPreference;
+        private String travelDate;
+        private String seatNumber;
+
+        // --- IF YOUR CLASS DOES NOT USE @Data OR @Getter/@Setter LOMBOK ANNOTATIONS, PASTE THESE GETTERS/SETTERS TOO: ---
+        public String getPassengerName() { return passengerName; }
+        public void setPassengerName(String passengerName) { this.passengerName = passengerName; }
+
+        public int getPassengerAge() { return passengerAge; }
+        public void setPassengerAge(int passengerAge) { this.passengerAge = passengerAge; }
+
+        public String getSeatPreference() { return seatPreference; }
+        public void setSeatPreference(String seatPreference) { this.seatPreference = seatPreference; }
+
+        public String getTravelDate() { return travelDate; }
+        public void setTravelDate(String travelDate) { this.travelDate = travelDate; }
+
+        public String getSeatNumber() { return seatNumber; }
+        public void setSeatNumber(String seatNumber) { this.seatNumber = seatNumber; }
 
         // Inner Getters and Setters
         public String getType() { return type; }
