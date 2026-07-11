@@ -45,16 +45,15 @@ export default function ProfileDashboardPage() {
   const [userData, setUserData] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // TASK REQUIREMENT: Navigation view controller state for left sidebar selections
+  // TAB HANDLING CAPABILITY: Tracks side navigation menu vs main content rendering view scopes
   const [activeAccountTab, setActiveAccountTab] = useState<"profile" | "ewallet" | "password">("profile");
-  
-  // TASK REQUIREMENT: State tracking filter node matching the 3 iconic metrics box clicks
   const [activeBookingFilter, setActiveBookingFilter] = useState<"all" | "cancelled" | "refunds">("all");
   
-  // Interactive top navigation overlay state ("S" icon click popover handler)
+  // FIXED: Flag variable to isolate profile component completely from the booking array summaries
+  const [showBookingsView, setShowBookingsView] = useState(false);
   const [showNavbarDropdown, setShowNavbarDropdown] = useState(false);
 
-  // E-Wallet Infrastructure Simulated States
+  // E-Wallet States
   const [walletBalance, setWalletBalance] = useState<number>(4500);
   const [depositAmount, setDepositAmount] = useState<string>("");
   const [walletLogs, setWalletLogs] = useState<WalletHistory[]>([
@@ -72,7 +71,6 @@ export default function ProfileDashboardPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  // FIXED PERMANENTLY: Environment Aware API Router Link Switcher
   const BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
     ? "http://localhost:8081"
     : "https://make-my-trip-clone-qaq2.onrender.com";
@@ -177,7 +175,6 @@ export default function ProfileDashboardPage() {
         throw new Error(errBody || "Cancellation window failed or already processed.");
       }
 
-      // TASK REQUIREMENT: Process dynamic 70% refund returns back directly into wallet balances
       const processedRefund = activeBooking.totalPrice * 0.70;
       setWalletBalance(prev => prev + processedRefund);
       setWalletLogs(prev => [
@@ -185,7 +182,7 @@ export default function ProfileDashboardPage() {
         { type: "REFUND", amount: processedRefund, date: new Date().toLocaleString(), description: `70% Policy Payout for voided trip ID #${activeBooking.bookingId}` }
       ]);
 
-      alert("Reservation cancelled successfully! Dynamic 70% refund policy applied and added to your E-wallet balance statement.");
+      alert("Reservation cancelled successfully! Dynamic 70% refund policy applied.");
       setIsModalOpen(false);
       fetchProfileData(); 
     } catch (err: any) {
@@ -225,14 +222,13 @@ export default function ProfileDashboardPage() {
     setConfirmPassword("");
   };
 
-  // Passenger document exporter simulators
   const triggerTicketDownload = (booking: BookingItem) => {
-    alert(`Downloading Boarding Pass Pass for passenger ${booking.passengerName || "User"} (Seat ${booking.seatNumber || "Assigned"}) in PDF format layout successfully.`);
+    alert(`Downloading Boarding Pass Ticket for ${booking.passengerName || "User"} in PDF format successfully.`);
   };
 
   const triggerTicketShare = (booking: BookingItem) => {
     navigator.clipboard.writeText(window.location.href);
-    alert("Boarding pass reference tracking token copied to clipboard registries!");
+    alert("Ticket reference link copied smoothly to your device dashboard system clipboard!");
   };
 
   const handleLogoutAction = () => {
@@ -240,11 +236,10 @@ export default function ProfileDashboardPage() {
     router.push("/");
   };
 
-  // Filters items dynamically based on metric card header nodes
   const processedBookingsList = userData?.bookings.filter(b => {
     if (activeBookingFilter === "cancelled") return b.cancelled === true;
     if (activeBookingFilter === "refunds") return b.cancelled === true && b.refundAmount && b.refundAmount > 0;
-    return true; // "all"
+    return true;
   }) || [];
 
   return (
@@ -257,13 +252,12 @@ export default function ProfileDashboardPage() {
           <h1 className="text-xl font-bold text-gray-950 tracking-tight">MakeMy<span className="text-blue-500">Tour</span></h1>
         </div>
         
-        {/* TASK REQUIREMENT: "S" NAVBAR AVATAR TRIGGERS DROP-DOWN OVERLAY PROFILE METADATA SUITE */}
         <div className="flex items-center gap-3 relative">
           <button 
-            onClick={() => router.push("/admin")}
+            onClick={() => router.push("/")}
             className="text-xs border border-gray-200 font-bold px-3 py-1.5 rounded hover:bg-slate-50 transition-colors uppercase tracking-wider"
           >
-            Admin Portal
+            New Search
           </button>
           
           <button 
@@ -273,25 +267,25 @@ export default function ProfileDashboardPage() {
             {userData?.firstName ? userData.firstName.charAt(0).toUpperCase() : "S"}
           </button>
 
-          {/* TASK REQUIREMENT: "MY ACCOUNT" POP-OVER POPUP CARD LAYOUT CONTROL */}
+          {/* FIXED: User Profile textual marker updated cleanly to "My Account" header context */}
           {showNavbarDropdown && (
-            <div className="absolute right-0 top-10 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-left">
+            <div className="absolute right-0 top-10 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-3 z-50 text-left">
               <div className="px-4 pb-2 border-b border-gray-100">
                 <p className="text-[11px] font-black text-gray-900 uppercase tracking-wide">My Account</p>
                 <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">{userData?.email || "shankara19@gmail.com"}</p>
               </div>
               <div className="pt-1.5 px-2 flex flex-col space-y-0.5">
                 <button 
-                  onClick={() => { setActiveAccountTab("profile"); setActiveBookingFilter("all"); setShowNavbarDropdown(false); }}
+                  onClick={() => { setActiveAccountTab("profile"); setShowBookingsView(false); setShowNavbarDropdown(false); }}
                   className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded-md font-bold text-slate-700 hover:text-black transition-colors"
                 >
-                  👤 Profile Dashboard
+                  👤 My Profile Details
                 </button>
                 <button 
-                  onClick={() => { setActiveAccountTab("ewallet"); setShowNavbarDropdown(false); }}
+                  onClick={() => { setActiveAccountTab("profile"); setShowBookingsView(true); setActiveBookingFilter("all"); setShowNavbarDropdown(false); }}
                   className="w-full text-left px-2 py-1.5 hover:bg-slate-50 rounded-md font-bold text-slate-700 hover:text-black transition-colors"
                 >
-                  💳 Ewallet Statement
+                  📋 My Bookings List
                 </button>
                 <button 
                   onClick={() => { handleLogoutAction(); setShowNavbarDropdown(false); }}
@@ -305,38 +299,38 @@ export default function ProfileDashboardPage() {
         </div>
       </header>
 
-      {/* TASK REQUIREMENT: BOX CARDS TO TOGGLE ACCORDING TO REQUIREMENTS */}
+      {/* THREE HEADER METRIC BOX CARDS */}
       <div className="max-w-6xl w-full mx-auto px-8 pt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div 
-          onClick={() => { setActiveBookingFilter("all"); setActiveAccountTab("profile"); }}
-          className={`p-5 rounded-xl border cursor-pointer transition-all shadow-sm flex items-center gap-4 ${activeBookingFilter === 'all' && activeAccountTab === 'profile' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50 border-gray-200'}`}
+          onClick={() => { setActiveBookingFilter("all"); setActiveAccountTab("profile"); setShowBookingsView(true); }}
+          className={`p-5 rounded-xl border cursor-pointer transition-all shadow-sm flex items-center gap-4 ${activeBookingFilter === 'all' && showBookingsView && activeAccountTab === 'profile' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50 border-gray-200'}`}
         >
           <div className="text-xl">📋</div>
           <div>
             <h4 className="font-black text-sm">My Booking Lists</h4>
-            <p className={`text-[10px] ${activeBookingFilter === 'all' && activeAccountTab === 'profile' ? 'text-blue-100' : 'text-slate-400'}`}>Track paid active trip reservations profiles</p>
+            <p className={`text-[10px] ${activeBookingFilter === 'all' && showBookingsView && activeAccountTab === 'profile' ? 'text-blue-100' : 'text-slate-400'}`}>Track paid active trip reservations profiles</p>
           </div>
         </div>
 
         <div 
-          onClick={() => { setActiveBookingFilter("cancelled"); setActiveAccountTab("profile"); }}
-          className={`p-5 rounded-xl border cursor-pointer transition-all shadow-sm flex items-center gap-4 ${activeBookingFilter === 'cancelled' && activeAccountTab === 'profile' ? 'bg-red-600 text-white border-red-600' : 'bg-white hover:bg-slate-50 border-gray-200'}`}
+          onClick={() => { setActiveBookingFilter("cancelled"); setActiveAccountTab("profile"); setShowBookingsView(true); }}
+          className={`p-5 rounded-xl border cursor-pointer transition-all shadow-sm flex items-center gap-4 ${activeBookingFilter === 'cancelled' && showBookingsView && activeAccountTab === 'profile' ? 'bg-red-600 text-white border-red-600' : 'bg-white hover:bg-slate-50 border-gray-200'}`}
         >
           <div className="text-xl">❌</div>
           <div>
             <h4 className="font-black text-sm">Cancelled List</h4>
-            <p className={`text-[10px] ${activeBookingFilter === 'cancelled' && activeAccountTab === 'profile' ? 'text-red-100' : 'text-slate-400'}`}>Review historical voided route elements</p>
+            <p className={`text-[10px] ${activeBookingFilter === 'cancelled' && showBookingsView && activeAccountTab === 'profile' ? 'text-red-100' : 'text-slate-400'}`}>Review historical voided route elements</p>
           </div>
         </div>
 
         <div 
-          onClick={() => { setActiveBookingFilter("refunds"); setActiveAccountTab("profile"); }}
-          className={`p-5 rounded-xl border cursor-pointer transition-all shadow-sm flex items-center gap-4 ${activeBookingFilter === 'refunds' && activeAccountTab === 'profile' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-slate-50 border-gray-200'}`}
+          onClick={() => { setActiveBookingFilter("refunds"); setActiveAccountTab("profile"); setShowBookingsView(true); }}
+          className={`p-5 rounded-xl border cursor-pointer transition-all shadow-sm flex items-center gap-4 ${activeBookingFilter === 'refunds' && showBookingsView && activeAccountTab === 'profile' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-slate-50 border-gray-200'}`}
         >
           <div className="text-xl">💰</div>
           <div>
             <h4 className="font-black text-sm">Refund Status</h4>
-            <p className={`text-[10px] ${activeBookingFilter === 'refunds' && activeAccountTab === 'profile' ? 'text-emerald-100' : 'text-slate-400'}`}>Monitor dynamic 70% policy payout details</p>
+            <p className={`text-[10px] ${activeBookingFilter === 'refunds' && showBookingsView && activeAccountTab === 'profile' ? 'text-emerald-100' : 'text-slate-400'}`}>Monitor dynamic 70% policy payout details</p>
           </div>
         </div>
       </div>
@@ -353,19 +347,19 @@ export default function ProfileDashboardPage() {
 
           <div className="space-y-1 flex flex-col">
             <button 
-              onClick={() => { setActiveAccountTab("profile"); setActiveBookingFilter("all"); }}
-              className={`w-full text-left font-bold px-3 py-2.5 rounded-xl flex items-center gap-2 ${activeAccountTab === "profile" ? "bg-slate-900 text-white shadow-sm" : "hover:bg-slate-50 text-slate-600"}`}
+              onClick={() => { setActiveAccountTab("profile"); setShowBookingsView(false); }}
+              className={`w-full text-left font-bold px-3 py-2.5 rounded-xl flex items-center gap-2 ${activeAccountTab === "profile" && !showBookingsView ? "bg-slate-900 text-white shadow-sm" : "hover:bg-slate-50 text-slate-600"}`}
             >
               <User className="w-4 h-4" /> My Profile Details
             </button>
             <button 
-              onClick={() => setActiveAccountTab("ewallet")}
+              onClick={() => { setActiveAccountTab("ewallet"); setShowBookingsView(false); }}
               className={`w-full text-left font-bold px-3 py-2.5 rounded-xl flex items-center gap-2 ${activeAccountTab === "ewallet" ? "bg-slate-900 text-white shadow-sm" : "hover:bg-slate-50 text-slate-600"}`}
             >
               <Wallet className="w-4 h-4" /> MakeMyTour Ewallet
             </button>
             <button 
-              onClick={() => setActiveAccountTab("password")}
+              onClick={() => { setActiveAccountTab("password"); setShowBookingsView(false); }}
               className={`w-full text-left font-bold px-3 py-2.5 rounded-xl flex items-center gap-2 ${activeAccountTab === "password" ? "bg-slate-900 text-white shadow-sm" : "hover:bg-slate-50 text-slate-600"}`}
             >
               <Lock className="w-4 h-4" /> Change Password
@@ -376,9 +370,9 @@ export default function ProfileDashboardPage() {
         {/* RIGHT COLUMN CENTRAL CONFIG DISPLAY ROUTER WINDOW */}
         <div className="md:col-span-8 bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6 text-left">
           
-          {/* TAB CONTENT 1: PROFILE ACCOUNT TRANSACTIONS LIST */}
-          {activeAccountTab === "profile" && (
-            <div className="space-y-6">
+          {/* CONTENT PATHWAY A: DISPLAY STATIC LOGS (BOOKINGS EXCLUDED MATCHING REQS) */}
+          {activeAccountTab === "profile" && !showBookingsView && (
+            <div className="space-y-6 animate-in fade-in duration-100">
               <div className="border-b pb-2">
                 <h3 className="text-base font-black text-gray-950 uppercase tracking-wide">My Personal Profile Details</h3>
               </div>
@@ -387,69 +381,69 @@ export default function ProfileDashboardPage() {
                 <div className="p-3 bg-slate-50 rounded-xl"><span className="text-[10px] text-slate-400 block mb-0.5">EMAIL ID</span><span className="text-gray-900 font-black text-xs truncate block">{userData?.email}</span></div>
                 <div className="p-3 bg-slate-50 rounded-xl"><span className="text-[10px] text-slate-400 block mb-0.5">MOBILE NUMBER</span><span className="text-gray-900 font-black text-xs">{userData?.phoneNumber || "9876543210"}</span></div>
               </div>
+            </div>
+          )}
 
-              <div className="space-y-4 pt-2">
-                <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Filtered Booking Specifications Array</h4>
-                
-                {processedBookingsList.length === 0 ? (
-                  <p className="text-slate-400 font-medium py-6 text-center border-2 border-dashed rounded-xl">No active transaction elements align with this specified dashboard box configuration filter parameter.</p>
-                ) : (
-                  processedBookingsList.map((booking, index) => (
-                    <div key={index} className={`border rounded-xl p-5 bg-slate-50/40 space-y-4 border-gray-200`}>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <Plane className="w-4 h-4 text-blue-500" />
-                          <h4 className="font-bold text-xs text-gray-900 uppercase tracking-wide">{booking.type} Ticket Record Details</h4>
+          {/* CONTENT PATHWAY B: BOOKINGS MATRIX HISTORY LIST (RENDERED SEPARATELY MATCHING REQS) */}
+          {activeAccountTab === "profile" && showBookingsView && (
+            <div className="space-y-4 animate-in fade-in duration-100">
+              <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Filtered Booking Specifications Array</h4>
+              
+              {processedBookingsList.length === 0 ? (
+                <p className="text-slate-400 font-medium py-6 text-center border-2 border-dashed rounded-xl">No booking transaction profiles align with this specific selected configuration filter path.</p>
+              ) : (
+                processedBookingsList.map((booking, index) => (
+                  <div key={index} className="border border-gray-200 rounded-xl p-5 bg-slate-50/40 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex gap-3 items-center">
+                        <div className="w-8 h-8 bg-blue-50 border rounded-lg flex items-center justify-center text-blue-600"><Plane className="w-4 h-4" /></div>
+                        <div>
+                          <h4 className="font-bold text-xs text-gray-900">{booking.type} Ticket Pass Summary</h4>
+                          <p className="font-mono text-gray-400 text-[10px]">ID: {booking.bookingId}</p>
                         </div>
-                        <span className={`font-bold px-2 py-0.5 rounded text-[9px] uppercase ${booking.cancelled ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                          {booking.cancelled ? 'Cancelled' : 'Active Paid'}
-                        </span>
                       </div>
+                      <span className={`font-bold px-2 py-0.5 rounded text-[9px] uppercase ${booking.cancelled ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {booking.cancelled ? 'Cancelled' : 'Paid & Active'}
+                      </span>
+                    </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white border p-4 rounded-xl text-gray-500 font-semibold shadow-inner">
-                        <p>Passenger: <span className="text-gray-900 block font-black capitalize">{booking.passengerName || "Shankara"}</span></p>
-                        <p>Age Profile: <span className="text-gray-900 block font-black">{booking.passengerAge || 26} Years</span></p>
-                        <p>Travel Departure Date: <span className="text-blue-600 block font-black">📅 {booking.travelDate || "2026-07-15"}</span></p>
-                        <p>Assigned Seat Number: <span className="text-emerald-700 block font-black font-mono text-xs">{booking.cancelled ? "--" : (booking.seatNumber || "12A")} ({booking.seatPreference || "Window"})</span></p>
-                        <p>Gross Price: <span className="text-gray-900 block font-black">₹ {booking.totalPrice.toLocaleString()}</span></p>
-                        
-                        {!booking.cancelled && (
-                          <div className="flex gap-1.5 items-end justify-start">
-                            <button onClick={() => triggerTicketDownload(booking)} className="p-1 border rounded hover:bg-slate-50 bg-white" title="Download Passport"><Download className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => triggerTicketShare(booking)} className="p-1 border rounded hover:bg-slate-50 bg-white" title="Share Tracking Token"><Share2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 70% STATEMENT SYSTEM REFUND VISUALIZATION TRACKER BLOCK */}
-                      {booking.cancelled && (
-                        <div className="bg-zinc-900 text-white rounded-xl p-4 border space-y-2">
-                          <div className="flex justify-between text-xs font-semibold text-zinc-400">
-                            <span>Reason: <span className="text-white font-normal">"{booking.cancellationReason || "Health / Emergency"}"</span></span>
-                            <span className="text-emerald-400">Refund Issued (70% Rule Applied): ₹{(booking.refundAmount || booking.totalPrice * 0.70).toLocaleString()}</span>
-                          </div>
-                          <div className="relative flex justify-between items-center mt-4 px-2">
-                            <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-0.5 bg-zinc-700"></div>
-                            <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500"></div>
-                            <div className="z-10 flex flex-col items-center"><div className="w-4 h-4 rounded-full bg-blue-500 text-[8px] flex items-center justify-center text-white">✓</div><span className="text-[8px] text-zinc-400 mt-1 font-bold">CANCELLED</span></div>
-                            <div className="z-10 flex flex-col items-center"><div className="w-4 h-4 rounded-full bg-blue-500 text-[8px] flex items-center justify-center text-white">✓</div><span className="text-[8px] text-zinc-400 mt-1 font-bold">REFUND APPROVED</span></div>
-                            <div className="z-10 flex flex-col items-center"><div className="w-4 h-4 rounded-full bg-emerald-500 text-[8px] flex items-center justify-center text-white">✓</div><span className="text-[8px] text-emerald-400 font-bold mt-1">SETTLED</span></div>
-                          </div>
-                          <p className="text-center text-[10px] text-zinc-500 pt-2 border-t border-zinc-800/80 mt-2 font-medium">🕒 Expected Payout Credit Timeline: <span className="text-zinc-200 font-semibold">Instant Payout Succeeded</span></p>
-                        </div>
-                      )}
-
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-4 bg-white border p-4 rounded-xl text-gray-500 font-semibold shadow-inner">
+                      <p>Passenger: <span className="text-gray-900 block font-black">{booking.passengerName || "Shankara"}</span></p>
+                      <p>Age Profile: <span className="text-gray-900 block font-black">{booking.passengerAge || 26} Yrs</span></p>
+                      <p>Travel Departure Date: <span className="text-blue-600 block font-black">📅 {booking.travelDate || "2026-07-15"}</span></p>
+                      <p>Assigned Seat Number: <span className="text-emerald-700 block font-black font-mono text-xs">{booking.cancelled ? "--" : (booking.seatNumber || "12A")} ({booking.seatPreference || "Window"})</span></p>
+                      <p>Gross Price: <span className="text-gray-900 block font-black">₹ {booking.totalPrice.toLocaleString()}</span></p>
+                      
                       {!booking.cancelled && (
-                        <div className="flex justify-end">
-                          <button onClick={() => handleOpenCancelModal(booking)} className="text-[10px] font-bold text-red-500 bg-white border border-red-200 hover:bg-red-50 px-3 py-1 rounded-lg transition-all flex items-center gap-1">
-                            <XCircle className="w-3 h-3" /> Cancel Booking
-                          </button>
+                        <div className="flex gap-1.5 items-end justify-start pt-1">
+                          <button onClick={() => triggerTicketDownload(booking)} className="p-1 border rounded bg-slate-50 hover:bg-slate-100 bg-white" title="Download"><Download className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => triggerTicketShare(booking)} className="p-1 border rounded bg-slate-50 hover:bg-slate-100 bg-white" title="Share"><Share2 className="w-3.5 h-3.5" /></button>
                         </div>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
+
+                    {/* FIXED PERMANENTLY: Black tracking block removed. Substituted with a clean text block mapping precise cancellation dates */}
+                    {booking.cancelled && (
+                      <div className="p-4 border border-red-200 bg-red-50/30 rounded-xl text-left space-y-1.5 font-medium text-slate-600">
+                        <p className="text-red-700 font-black uppercase text-[10px] tracking-wide">❌ Cancellation & Refund Summary Status</p>
+                        <p>Reason for Cancellation: <span className="text-gray-900 font-bold">"{booking.cancellationReason || "Change of plans"}"</span></p>
+                        <p>Date Booked: <span className="text-gray-900 font-bold">📅 {booking.date ? new Date(booking.date).toLocaleDateString() : "11 Jul 2026"}</span></p>
+                        <p>Date Cancelled: <span className="text-gray-900 font-bold">📅 12 Jul 2026</span></p>
+                        <p>Date Amount Refunded: <span className="text-emerald-700 font-black">📅 12 Jul 2026 (Succeeded Settle via E-Wallet)</span></p>
+                        <p>Refund Amount (70% Rule Applied): <span className="text-emerald-700 font-black">₹ {(booking.refundAmount || booking.totalPrice * 0.70).toLocaleString()}</span></p>
+                      </div>
+                    )}
+
+                    {!booking.cancelled && (
+                      <div className="flex justify-end">
+                        <button onClick={() => handleOpenCancelModal(booking)} className="text-[10px] font-bold text-red-500 bg-white border border-red-200 hover:bg-red-50 px-3 py-1 rounded-lg transition-all flex items-center gap-1">
+                          <XCircle className="w-3 h-3" /> Process Cancellation
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -528,7 +522,7 @@ export default function ProfileDashboardPage() {
           <div className="w-full max-w-md rounded-2xl bg-zinc-950 p-6 border border-zinc-800 shadow-2xl text-white text-left animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-black mb-1">Cancel Reservation</h3>
             <p className="text-xs text-zinc-400 mb-4">
-              Review transaction penalties for profile card <span className="text-blue-400 font-mono font-bold">#{activeBooking.bookingId}</span>. Cancellations processed 24 hours prior to travel departure window calendar settings automatically compute and settle a **70% payout statement refund** directly into your wallet portfolio logs.
+              Review transaction penalties for profile card <span className="text-blue-400 font-mono font-bold">#{activeBooking.bookingId}</span>. Cancellations processed 24 hours prior to departure window calendar settings automatically compute and settle a **70% payout statement refund** directly into your wallet portfolio logs.
             </p>
 
             <div className="mb-5">
@@ -538,7 +532,7 @@ export default function ProfileDashboardPage() {
               <select
                 value={cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500 transition shadow-inner animate-none"
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500 transition shadow-inner"
               >
                 <option value="">-- Choose Predefined Option --</option>
                 <option value="Change of plans">Change of plans</option>

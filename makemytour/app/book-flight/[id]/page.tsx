@@ -28,11 +28,14 @@ export default function BookFlightPage() {
   const [userId, setUserId] = useState("");
   const [userEmailAddress, setUserEmailAddress] = useState("");
   
-  // TASK REQUIREMENT: Dynamic multi-passenger state management initialized with 1 member
+  // Passenger Array State
   const [passengers, setPassengers] = useState<Passenger[]>([
     { name: "", age: 25, seatNumber: "" }
   ]);
   const [activePassengerIndex, setActivePassengerIndex] = useState<number>(0);
+  
+  // FIXED: Control state to handle seat map popover display exactly like a calendar popover
+  const [showSeatPickerIndex, setShowSeatPickerIndex] = useState<number | null>(null);
   
   // Custom interactive tracking states
   const [paymentMethod, setPaymentMethod] = useState("UPI");
@@ -48,17 +51,14 @@ export default function BookFlightPage() {
   const otherServices = 249;
   const discount = 250;
   
-  // FIXED PERMANENTLY: Environment Aware API Router Link Switcher
   const BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
     ? "http://localhost:8081"
     : "https://make-my-trip-clone-qaq2.onrender.com";
 
-  // FIXED: Defensive price structure maps any field naming variant from your MongoDB collection documents
   const basePricePerTicket = flight 
     ? (Number(flight.price) || Number(flight.fare) || Number(flight.ticketPrice) || 3500) 
     : 3500;
 
-  // TASK REQUIREMENT: Base Fare and Total Amount metrics scale dynamically with the size of your passenger array roster
   const calculatedBase = basePricePerTicket * passengers.length;
   const totalAmount = calculatedBase + taxes + otherServices - discount;
 
@@ -71,7 +71,6 @@ export default function BookFlightPage() {
     }
     setUserEmailAddress(savedEmail);
 
-    // Pipeline 1: Pull the User's Real ID Document mapping safely using dynamic URL roots
     fetch(`${BASE_URL}/user/${encodeURIComponent(savedEmail)}`)
       .then((res) => {
         if (res.ok) return res.json();
@@ -90,7 +89,6 @@ export default function BookFlightPage() {
         setUserId(savedEmail);
       });
 
-    // Pipeline 2: Pull flight data from database matching current routing ID parameter
     fetch(`${BASE_URL}/admin/flights`)
       .then((res) => {
         if (res.ok) return res.json();
@@ -109,7 +107,6 @@ export default function BookFlightPage() {
       });
   }, [id, router, BASE_URL]);
 
-  // TASK REQUIREMENT: Append co-passengers to array up to a maximum limit of 8
   const handleAddPassengerRow = () => {
     if (passengers.length >= 8) {
       alert("Limitation Warning: You can add a maximum of 8 passengers per booking transaction order block!");
@@ -117,6 +114,7 @@ export default function BookFlightPage() {
     }
     setPassengers([...passengers, { name: "", age: 25, seatNumber: "" }]);
     setActivePassengerIndex(passengers.length);
+    setShowSeatPickerIndex(passengers.length); // Automatically pop open seat map for new passenger
   };
 
   const handleRemovePassengerRow = (index: number) => {
@@ -125,6 +123,7 @@ export default function BookFlightPage() {
     update.splice(index, 1);
     setPassengers(update);
     setActivePassengerIndex(0);
+    setShowSeatPickerIndex(null);
   };
 
   const handlePassengerFieldChange = (index: number, field: keyof Passenger, value: any) => {
@@ -133,14 +132,12 @@ export default function BookFlightPage() {
     setPassengers(update);
   };
 
-  // TASK REQUIREMENT: Comprehensive seat preference allocation verification checks
   const handleValidateCheckoutFlow = () => {
     if (!travelDate) {
       alert("Please choose a valid travel date from the calendar option menu.");
       return;
     }
 
-    // Verify all passenger names are filled
     for (let i = 0; i < passengers.length; i++) {
       if (!passengers[i].name.trim()) {
         alert(`Please input a valid Full Name for Passenger #${i + 1}.`);
@@ -152,15 +149,12 @@ export default function BookFlightPage() {
       }
     }
 
-    // TASK REQUIREMENT: Flight Operational Schedule Weekday Validation Rules
     const targetDay = new Date(travelDate).getDay();
-    // Simulates non-operational days (e.g., Tuesdays and Thursdays remain locked)
     if (targetDay === 2 || targetDay === 4) { 
       alert("There are no active scheduled flights available on this specific date layout choice. This flight route only operates on Mondays, Wednesdays, Fridays, and weekends!");
       return;
     }
 
-    // TASK REQUIREMENT: Cap Window preferences to a maximum allotment of 2 selections across the group
     const windowSeatCount = passengers.filter(p => p.seatNumber.endsWith("A") || p.seatNumber.endsWith("F")).length;
     if (windowSeatCount > 2) {
       alert(`Limitation Warning: Only a maximum of 2 Window Seats can be selected per group order profile! You currently have ${windowSeatCount} window seats claimed. Please re-allocate your selections.`);
@@ -188,7 +182,7 @@ export default function BookFlightPage() {
           seatPreference: passengers[0].seatNumber.endsWith("A") || passengers[0].seatNumber.endsWith("F") ? "Window" : "Aisle",
           travelDate: travelDate,
           seatNumber: passengers[0].seatNumber,
-          roster: passengers // Sends full array down to backend database
+          roster: passengers 
         }),
       });
 
@@ -208,7 +202,6 @@ export default function BookFlightPage() {
     }
   };
 
-  // Helper arrays to build an interactive 6x4 layout grid map matrix
   const seatRows = [1, 2, 3, 4, 5, 6];
   const seatLetters = ["A", "B", "C", "D", "E", "F"];
 
@@ -232,7 +225,7 @@ export default function BookFlightPage() {
       {/* CORE WRAPPER GRID */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
         
-        {/* LEFT COLUMN: CORE FLIGHT DETAILS & PASSEGER ROSTER */}
+        {/* LEFT COLUMN: CORE FLIGHT DETAILS & PASSENGER ROSTER */}
         <div className="lg:col-span-2 space-y-6">
           
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left">
@@ -278,7 +271,7 @@ export default function BookFlightPage() {
             </div>
           </div>
 
-          {/* TASK REQUIREMENT: ENHANCED PASSEGER DETAIL FIELDS WITH MAX 8 CAPS */}
+          {/* PASSENGER DETAILS FORM WITH CALENDAR-STYLE INTEGRATED SEAT PICKER POPOVER */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-bold text-sm text-gray-900 uppercase tracking-wide">👨‍✈️ Passenger Information & Travel Date</h3>
@@ -300,16 +293,18 @@ export default function BookFlightPage() {
               {passengers.map((passenger, index) => (
                 <div 
                   key={index} 
-                  onClick={() => setActivePassengerIndex(index)}
-                  className={`p-4 border rounded-xl transition-all relative cursor-pointer ${activePassengerIndex === index ? 'border-blue-500 bg-blue-50/10' : 'border-gray-200 bg-slate-50/40'}`}
+                  onClick={() => {
+                    setActivePassengerIndex(index);
+                  }}
+                  className={`p-4 border rounded-xl transition-all relative ${activePassengerIndex === index ? 'border-blue-500 bg-blue-50/10' : 'border-gray-200 bg-slate-50/40'}`}
                 >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-black text-gray-900">Passenger #{index + 1} {activePassengerIndex === index && "(Selecting Seat)"}</span>
+                    <span className="text-xs font-black text-gray-900">Passenger #{index + 1} {activePassengerIndex === index && "(Selecting Details)"}</span>
                     {passengers.length > 1 && (
                       <button type="button" onClick={(e) => { e.stopPropagation(); handleRemovePassengerRow(index); }} className="text-[10px] text-red-500 font-bold hover:underline">Remove</button>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
                     <div>
                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Passenger Full Name</label>
                       <input type="text" value={passenger.name} onChange={(e) => handlePassengerFieldChange(index, "name", e.target.value)} placeholder="First and last name" className="w-full border p-2 bg-white text-xs font-bold rounded-lg text-black outline-none" />
@@ -318,59 +313,97 @@ export default function BookFlightPage() {
                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Age</label>
                       <input type="number" min={1} value={passenger.age} onChange={(e) => handlePassengerFieldChange(index, "age", parseInt(e.target.value) || 25)} className="w-full border p-2 bg-white text-xs font-bold rounded-lg text-black outline-none" />
                     </div>
-                    <div>
+                    
+                    {/* FIXED: The Assigned Seat box acts exactly like an interactive calendar popover trigger */}
+                    <div className="relative">
                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Assigned Seat</label>
-                      <input type="text" value={passenger.seatNumber || "Click map down below..."} readOnly className="w-full border p-2 bg-slate-100 text-xs font-black rounded-lg text-blue-600 font-mono outline-none" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActivePassengerIndex(index);
+                          setShowSeatPickerIndex(showSeatPickerIndex === index ? null : index);
+                        }}
+                        className="w-full border p-2 bg-white text-xs font-black rounded-lg text-blue-600 font-mono text-left flex justify-between items-center shadow-sm"
+                      >
+                        <span>{passenger.seatNumber || "Select Seat ➔"}</span>
+                        <span className="text-slate-300 text-[10px]">💺</span>
+                      </button>
+
+                      {/* CALENDAR-STYLE POPUP SEAT MAP ATTACHED DIRECTLY TO THE FIELD */}
+                      {showSeatPickerIndex === index && (
+                        <div className="absolute left-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl p-4 shadow-2xl z-40 animate-in fade-in zoom-in-95 duration-150">
+                          <div className="flex justify-between items-center border-b pb-2 mb-3">
+                            <span className="text-[10px] font-black uppercase text-gray-900">Select Seat Map (#{index + 1})</span>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setShowSeatPickerIndex(null); }} className="text-gray-400 text-xs hover:text-black">✕</button>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-6 gap-1 text-center font-bold text-[9px] text-slate-400 mb-1">
+                              {seatLetters.map((l) => <span key={l}>{l}</span>)}
+                            </div>
+                            
+                            {seatRows.map((row) => (
+                              <div key={row} className="grid grid-cols-6 gap-1">
+                                {seatLetters.map((letter) => {
+                                  const currentSeatCode = `${row}${letter}`;
+                                  const isClaimedBySomeoneElse = passengers.some((p, idx) => idx !== index && p.seatNumber === currentSeatCode);
+                                  const isClaimedByMe = passenger.seatNumber === currentSeatCode;
+
+                                  return (
+                                    <button
+                                      key={letter}
+                                      type="button"
+                                      disabled={isClaimedBySomeoneElse}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePassengerFieldChange(index, "seatNumber", currentSeatCode);
+                                        setShowSeatPickerIndex(null); // Close popover matching selection path
+                                      }}
+                                      className={`p-1.5 rounded font-mono text-[9px] font-black border text-center transition-all ${
+                                        isClaimedByMe 
+                                          ? 'bg-blue-600 text-white border-blue-600 shadow' 
+                                          : isClaimedBySomeoneElse 
+                                            ? 'bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed' 
+                                            : 'bg-white hover:bg-blue-50 border-gray-200 text-gray-800'
+                                      }`}
+                                    >
+                                      {currentSeatCode}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            
+            {passengers.length >= 8 && (
+              <p className="text-[11px] text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-100">
+                ⚠️ Limitation Warning: Maximum allotment of 8 passenger records reached for this booking transaction group profile!
+              </p>
+            )}
           </div>
 
-          {/* TASK REQUIREMENT: COMPLETELY INTERACTIVE DYNAMIC MATRIX SEAT GRID DESIGN */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left space-y-4">
-            <h4 className="font-bold text-xs text-gray-900 uppercase tracking-wide border-b pb-2">💺 Interactive Flight Cabin Layout Grid Map</h4>
-            <p className="text-[11px] text-slate-400 font-medium">Click on any open seat box down below to assign it to **Passenger #{activePassengerIndex + 1}** ({passengers[activePassengerIndex]?.name || "Name not set yet"}). Columns A and F are window seats.</p>
-            
-            <div className="max-w-md mx-auto p-4 border rounded-xl bg-slate-50/60 shadow-inner space-y-3">
-              <div className="grid grid-cols-6 gap-2 text-center font-bold text-[10px] text-slate-400">
-                {seatLetters.map((l) => <span key={l}>{l}</span>)}
-              </div>
-              
-              {seatRows.map((row) => (
-                <div key={row} className="grid grid-cols-6 gap-2">
-                  {seatLetters.map((letter) => {
-                    const currentSeatCode = `${row}${letter}`;
-                    const isClaimedBySomeoneElse = passengers.some((p, idx) => idx !== activePassengerIndex && p.seatNumber === currentSeatCode);
-                    const isClaimedByMe = passengers[activePassengerIndex]?.seatNumber === currentSeatCode;
-
-                    return (
-                      <button
-                        key={letter}
-                        type="button"
-                        disabled={isClaimedBySomeoneElse}
-                        onClick={() => handlePassengerFieldChange(activePassengerIndex, "seatNumber", currentSeatCode)}
-                        className={`p-2 rounded font-mono text-[10px] font-black transition-all border text-center ${
-                          isClaimedByMe 
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105' 
-                            : isClaimedBySomeoneElse 
-                              ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed' 
-                              : 'bg-white hover:bg-blue-50 border-gray-300 text-gray-800'
-                        }`}
-                      >
-                        {currentSeatCode}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-
-              <div className="flex items-center justify-center gap-4 pt-3 border-t border-gray-200 text-[10px] font-bold text-slate-400">
-                <div className="flex items-center gap-1"><span className="w-3 h-3 border rounded bg-white" /> Open</div>
-                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-600" /> Selected</div>
-                <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-slate-200" /> Taken</div>
-              </div>
+          {/* CANCELLATION AND DATE CHANGE POLICY DISPLAYS */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">🛡️ Cancellation & Date Change Policy</h3>
+              <span className="text-xs text-blue-500 cursor-pointer font-medium hover:underline">View Policy</span>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-md flex items-center justify-between mb-4 text-xs">
+              <span className="font-semibold flex items-center gap-1 uppercase">✈️ {flight ? `${flight.from.slice(0,3)}-${flight.to.slice(0,3)}` : "PAR-TOK"}</span>
+              <span className="font-bold text-gray-900">₹ {calculatedBase.toLocaleString()}</span>
+            </div>
+            <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-orange-400 to-red-400 rounded-full relative my-6">
+              <div className="absolute -bottom-5 left-0 text-[10px] text-slate-400">Now</div>
+              <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-slate-400">24 Hours Before</div>
+              <div className="absolute -bottom-5 right-0 text-[10px] text-slate-400">Departure</div>
             </div>
           </div>
 
@@ -476,22 +509,22 @@ export default function BookFlightPage() {
                 <div onClick={() => setPaymentMethod("UPI")} className={`p-3 border rounded-xl flex items-center gap-3 cursor-pointer transition-all ${paymentMethod === 'UPI' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:bg-slate-50'}`}>
                   <input type="radio" checked={paymentMethod === 'UPI'} readOnly />
                   <div>
-                    <p className="font-bold text-gray-900">Instant UPI Interface</p>
-                    <p className="text-[10px] text-slate-400">Pay securely via PhonePe, BHIM, GPay, or Paytm apps</p>
+                    <p className="font-bold text-gray-900">Instant UPI Portal Interface</p>
+                    <p className="text-[10px] text-slate-400">Pay using PhonePe, GPay, or NetBanking systems</p>
                   </div>
                 </div>
 
                 <div onClick={() => setPaymentMethod("Card")} className={`p-3 border rounded-xl flex items-center gap-3 cursor-pointer transition-all ${paymentMethod === 'Card' ? 'border-blue-500 bg-blue-50/40' : 'border-gray-200 hover:bg-slate-50'}`}>
                   <input type="radio" checked={paymentMethod === 'Card'} readOnly />
                   <div>
-                    <p className="font-bold text-gray-900">Credit / Debit Card</p>
-                    <p className="text-[10px] text-slate-400">All major international and domestic card networks active</p>
+                    <p className="font-bold text-gray-900">Credit / Debit Card Security</p>
+                    <p className="text-[10px] text-slate-400">All global card payment processors accepted</p>
                   </div>
                 </div>
               </div>
 
               <div className="bg-slate-50 border rounded-lg p-3 mb-6 flex justify-between font-bold text-gray-900">
-                <span>Total Amount Due:</span>
+                <span>Payable Order Total Amount:</span>
                 <span className="text-blue-600">₹ {totalAmount.toLocaleString()}</span>
               </div>
 
@@ -500,7 +533,7 @@ export default function BookFlightPage() {
                 disabled={loadingPayment}
                 className="w-full bg-slate-900 hover:bg-black disabled:bg-slate-400 text-white font-bold py-3 rounded shadow uppercase tracking-wide text-xs transition-all"
               >
-                {loadingPayment ? "Authorizing Funds..." : `Pay via ${paymentMethod}`}
+                {loadingPayment ? "Processing Authorization..." : `Pay via ${paymentMethod}`}
               </button>
             </div>
           </div>
