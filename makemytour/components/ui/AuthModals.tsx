@@ -30,7 +30,7 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
     
     if (view === "signup") {
       try {
-        const response = await fetch("http://localhost:8080/user/signup", {
+        const response = await fetch("https://make-my-trip-clone-qaq2.onrender.com/user/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -55,7 +55,7 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
     } else {
       // HANDLE LOGIN ACTION - Matching your Spring Boot @RequestParam setup
       try {
-        const url = `http://localhost:8080/user/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(formData.password)}`;
+        const url = `https://make-my-trip-clone-qaq2.onrender.com/user/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(formData.password)}`;
         
         const response = await fetch(url, {
           method: "POST"

@@ -34,7 +34,7 @@ export default function ProfileDashboardPage() {
     }
 
     // Connect to your Spring Boot backend endpoint to get user profile and bookings log
-    fetch(`http://localhost:8080/user/${encodeURIComponent(savedEmail)}`)
+    fetch(`https://make-my-trip-clone-qaq2.onrender.com/user/${encodeURIComponent(savedEmail)}`)
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error("Failed to pull profile tracking data.");

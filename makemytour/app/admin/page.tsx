@@ -83,7 +83,7 @@ export default function AdminDashboard() {
 
   const fetchFlights = async () => {
     try {
-      const res = await fetch("http://localhost:8080/admin/flights");
+      const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights");
       if (res.ok) {
         setFlightsList(await res.json());
       } else {
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
 
   const fetchHotels = async () => {
     try {
-      const res = await fetch("http://localhost:8080/admin/hotels");
+      const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/hotels");
       if (res.ok) {
         setHotelsList(await res.json());
       } else {
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
     
     if (editingFlightId) {
       try {
-        await fetch(`http://localhost:8080/admin/flights/${editingFlightId}`, {
+        await fetch(`https://make-my-trip-clone-qaq2.onrender.com/admin/flights/${editingFlightId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
       setEditingFlightId(null);
     } else {
       try {
-        await fetch("http://localhost:8080/admin/flights", {
+        await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -204,7 +204,7 @@ export default function AdminDashboard() {
 
     if (editingHotelId) {
       try {
-        await fetch(`http://localhost:8080/admin/hotels/${editingHotelId}`, {
+        await fetch(`https://make-my-trip-clone-qaq2.onrender.com/admin/hotels/${editingHotelId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
