@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface AuthModalsProps {
@@ -11,6 +11,7 @@ interface AuthModalsProps {
 
 export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsProps) {
   const [view, setView] = useState<"login" | "signup">(initialView);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -18,6 +19,20 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
     password: "",
     phoneNumber: ""
   });
+
+  // FIXED: Syncs internal view state instantly when parent updates initialView toggle parameters
+  useEffect(() => {
+    if (isOpen) {
+      setView(initialView);
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        phoneNumber: ""
+      });
+    }
+  }, [isOpen, initialView]);
 
   if (!isOpen) return null;
 
@@ -27,6 +42,7 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
     if (view === "signup") {
       try {
@@ -43,7 +59,7 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
         });
 
         if (response.ok) {
-          alert("Registration Successful! Switching to Login.");
+          alert("Registration Successful! Switching to Login view.");
           setView("login");
         } else {
           alert("Signup failed. Check your data entry (or this email might already exist).");
@@ -51,9 +67,11 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
       } catch (err) {
         console.error(err);
         alert("Cannot connect to Spring Boot backend server.");
+      } finally {
+        setLoading(false);
       }
     } else {
-      // HANDLE LOGIN ACTION - Matching your Spring Boot @RequestParam setup
+      // FIXED: Comprehensive text-first network reader payload architecture
       try {
         const url = `https://make-my-trip-clone-qaq2.onrender.com/user/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(formData.password)}`;
         
@@ -62,88 +80,99 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
         });
 
         if (response.ok) {
-          const userData = await response.json();
-          
-          if (userData && userData.email) {
-            // Save the session details directly into local storage browser memory
-            localStorage.setItem("email", userData.email);
-            
-            // Cleanly close the modal layout layer and refresh page state
-            onClose();
-            window.location.reload();
-          } else {
-            alert("Login failed. Invalid user data returned.");
+          const rawText = await response.text();
+          let emailToSave = formData.email; // Secure dynamic input string fallback
+
+          try {
+            // Attempt to parse response if returning full user object document mappings
+            const parsedData = JSON.parse(rawText);
+            if (parsedData && parsedData.email) {
+              emailToSave = parsedData.email;
+            }
+          } catch (e) {
+            // Backend returned a successful text token or simple string message; use fallback
           }
+
+          localStorage.setItem("email", emailToSave);
+          alert("Login Successful! Welcome to MakeMyTour.");
+          onClose();
+          window.location.reload(); // Instantly clears auth guards across dashboard layouts
         } else {
-          alert("Invalid login credentials. Please check your email and password.");
+          alert("Invalid login credentials. Please check your email and password combinations.");
         }
       } catch (err) {
         console.error(err);
-        alert("Connection error. Is your Spring Boot backend running?");
+        alert("Connection error. Is your Spring Boot backend active and accessible?");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-2xl border border-gray-100 text-slate-800 text-left animate-in fade-in zoom-in-95 duration-200">
         
         {/* Close Button */}
-        <button onClick={onClose} className="absolute right-4 top-4 text-gray-500 hover:text-gray-800">
+        <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 transition-colors">
           <X className="h-5 w-5" />
         </button>
 
-        {/* Dynamic Header Titles */}
-        <h2 className="text-2xl font-bold text-gray-900 text-center">
+        {/* Header Section */}
+        <h2 className="text-2xl font-black text-gray-900 text-center tracking-tight">
           {view === "signup" ? "Create Account" : "Welcome Back"}
         </h2>
-        <p className="text-sm text-gray-500 text-center mb-6">
-          {view === "signup" ? "Join us to start booking your tours." : "Enter your credentials to access your account."}
+        <p className="text-xs text-gray-400 text-center mb-6 mt-0.5">
+          {view === "signup" ? "Join us to start booking your tours." : "Enter your credentials to access your account dashboard."}
         </p>
 
-        {/* Dynamic Form Layout */}
+        {/* Interactive Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {view === "signup" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">First Name</label>
-                <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required className="w-full px-3 py-2 border rounded-md text-sm outline-none focus:border-blue-500 text-black" />
+                <label className="text-[11px] uppercase tracking-wider font-bold text-gray-500 block mb-1">First Name</label>
+                <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-200 bg-slate-50 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 text-black font-semibold transition-all" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Last Name</label>
-                <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required className="w-full px-3 py-2 border rounded-md text-sm outline-none focus:border-blue-500 text-black" />
+                <label className="text-[11px] uppercase tracking-wider font-bold text-gray-500 block mb-1">Last Name</label>
+                <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-200 bg-slate-50 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 text-black font-semibold transition-all" />
               </div>
             </div>
           )}
 
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Email</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 border rounded-md text-sm outline-none focus:border-blue-500 text-black" />
+            <label className="text-[11px] uppercase tracking-wider font-bold text-gray-500 block mb-1">Email Address</label>
+            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-200 bg-slate-50 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 text-black font-semibold transition-all" />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Password</label>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} required className="w-full px-3 py-2 border rounded-md text-sm outline-none focus:border-blue-500 text-black" />
+            <label className="text-[11px] uppercase tracking-wider font-bold text-gray-500 block mb-1">Password</label>
+            <input type="password" name="password" value={formData.password} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-200 bg-slate-50 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 text-black font-semibold transition-all" />
           </div>
 
           {view === "signup" && (
             <div>
-              <label className="text-xs font-semibold text-gray-600 block mb-1">Phone Number</label>
-              <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required className="w-full px-3 py-2 border rounded-md text-sm outline-none focus:border-blue-500 text-black" />
+              <label className="text-[11px] uppercase tracking-wider font-bold text-gray-500 block mb-1">Phone Number</label>
+              <input type="text" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-200 bg-slate-50 rounded-lg text-sm outline-none focus:bg-white focus:border-blue-500 text-black font-semibold transition-all" />
             </div>
           )}
 
-          <button type="submit" className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition duration-200">
-            {view === "signup" ? "Sign Up" : "Login"}
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-md transition-all duration-150 active:scale-[0.99]"
+          >
+            {loading ? "Authenticating..." : view === "signup" ? "Sign Up" : "Login"}
           </button>
         </form>
 
-        {/* Bottom Toggle Link */}
-        <div className="mt-6 text-center text-xs text-gray-600">
+        {/* View Switcher Bar */}
+        <div className="mt-6 text-center text-xs text-gray-500 border-t border-gray-100 pt-4">
           {view === "signup" ? (
-            <p>Already have an account? <span onClick={() => setView("login")} className="text-blue-600 font-semibold cursor-pointer hover:underline">Login</span></p>
+            <p>Already have an account? <span onClick={() => setView("login")} className="text-blue-600 font-bold cursor-pointer hover:underline ml-1">Login</span></p>
           ) : (
-            <p>Don't have an account? <span onClick={() => setView("signup")} className="text-blue-600 font-semibold cursor-pointer hover:underline">Sign Up</span></p>
+            <p>Don't have an account yet? <span onClick={() => setView("signup")} className="text-blue-600 font-bold cursor-pointer hover:underline ml-1">Sign Up</span></p>
           )}
         </div>
 
