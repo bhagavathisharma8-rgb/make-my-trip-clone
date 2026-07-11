@@ -20,7 +20,6 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
     phoneNumber: ""
   });
 
-  // FIXED: Syncs internal view state instantly when parent updates initialView toggle parameters
   useEffect(() => {
     if (isOpen) {
       setView(initialView);
@@ -52,17 +51,17 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
           body: JSON.stringify({
             firstName: formData.firstName,
             lastName: formData.lastName,
-            email: formData.email,
+            email: formData.email.trim(),
             password: formData.password,
             phoneNumber: formData.phoneNumber
           })
         });
 
         if (response.ok) {
-          alert("Registration Successful! Switching to Login view.");
+          alert("Registration Successful! Please log in now.");
           setView("login");
         } else {
-          alert("Signup failed. Check your data entry (or this email might already exist).");
+          alert("Signup failed. That email might already be registered.");
         }
       } catch (err) {
         console.error(err);
@@ -71,38 +70,43 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
         setLoading(false);
       }
     } else {
-      // FIXED: Comprehensive text-first network reader payload architecture
+      // FIXED: Uses standard form-urlencoded body payload to support Spring Boot @RequestParam perfectly over the cloud
       try {
-        const url = `https://make-my-trip-clone-qaq2.onrender.com/user/login?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(formData.password)}`;
-        
-        const response = await fetch(url, {
-          method: "POST"
+        const bodyParams = new URLSearchParams();
+        bodyParams.append("email", formData.email.trim());
+        bodyParams.append("password", formData.password);
+
+        const response = await fetch("https://make-my-trip-clone-qaq2.onrender.com/user/login", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/x-www-form-urlencoded" 
+          },
+          body: bodyParams
         });
 
         if (response.ok) {
           const rawText = await response.text();
-          let emailToSave = formData.email; // Secure dynamic input string fallback
+          let emailToSave = formData.email.trim();
 
           try {
-            // Attempt to parse response if returning full user object document mappings
             const parsedData = JSON.parse(rawText);
             if (parsedData && parsedData.email) {
               emailToSave = parsedData.email;
             }
           } catch (e) {
-            // Backend returned a successful text token or simple string message; use fallback
+            // Handled if backend returns raw string tokens
           }
 
           localStorage.setItem("email", emailToSave);
           alert("Login Successful! Welcome to MakeMyTour.");
           onClose();
-          window.location.reload(); // Instantly clears auth guards across dashboard layouts
+          window.location.reload(); 
         } else {
           alert("Invalid login credentials. Please check your email and password combinations.");
         }
       } catch (err) {
         console.error(err);
-        alert("Connection error. Is your Spring Boot backend active and accessible?");
+        alert("Connection error. Is your backend server live?");
       } finally {
         setLoading(false);
       }
@@ -113,12 +117,10 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-2xl border border-gray-100 text-slate-800 text-left animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Close Button */}
         <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 transition-colors">
           <X className="h-5 w-5" />
         </button>
 
-        {/* Header Section */}
         <h2 className="text-2xl font-black text-gray-900 text-center tracking-tight">
           {view === "signup" ? "Create Account" : "Welcome Back"}
         </h2>
@@ -126,7 +128,6 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
           {view === "signup" ? "Join us to start booking your tours." : "Enter your credentials to access your account dashboard."}
         </p>
 
-        {/* Interactive Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {view === "signup" && (
             <div className="grid grid-cols-2 gap-3">
@@ -167,7 +168,6 @@ export default function AuthModals({ isOpen, onClose, initialView }: AuthModalsP
           </button>
         </form>
 
-        {/* View Switcher Bar */}
         <div className="mt-6 text-center text-xs text-gray-500 border-t border-gray-100 pt-4">
           {view === "signup" ? (
             <p>Already have an account? <span onClick={() => setView("login")} className="text-blue-600 font-bold cursor-pointer hover:underline ml-1">Login</span></p>
