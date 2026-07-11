@@ -11,6 +11,8 @@ interface FlightDetails {
   to: string;
   price: number;
   availableSeats: number;
+  ticketPrice?: number;
+  fare?: number;
 }
 
 export default function BookFlightPage() {
@@ -19,6 +21,7 @@ export default function BookFlightPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [tickets, setTickets] = useState(1);
   const [userId, setUserId] = useState("");
+  const [userEmailAddress, setUserEmailAddress] = useState("");
   
   // Dynamic Flight Inventory State
   const [flight, setFlight] = useState<FlightDetails | null>(null);
@@ -30,8 +33,12 @@ export default function BookFlightPage() {
   const otherServices = 249;
   const discount = 250;
   
-  // Calculate dynamic amounts based on actual database prices
-  const calculatedBase = flight ? flight.price * tickets : 3500 * tickets;
+  // Dynamic calculation handling all backend schema variations
+  const basePricePerTicket = flight 
+    ? (Number(flight.price) || Number(flight.fare) || Number(flight.ticketPrice) || 3500) 
+    : 3500;
+
+  const calculatedBase = basePricePerTicket * tickets;
   const totalAmount = calculatedBase + taxes + otherServices - discount;
 
   useEffect(() => {
@@ -41,17 +48,26 @@ export default function BookFlightPage() {
       router.push("/");
       return;
     }
+    setUserEmailAddress(savedEmail);
 
-    // Pipeline 1: Pull the User's Real ID Document mapping
+    // Pipeline 1: Pull the User's Real ID Document mapping safely
     fetch(`https://make-my-trip-clone-qaq2.onrender.com/user/${encodeURIComponent(savedEmail)}`)
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error("Failed to resolve user details.");
       })
       .then((data) => {
-        if (data && data._id) setUserId(data._id);
+        const resolvedUid = data.id || data._id || data.uid;
+        if (resolvedUid) {
+          setUserId(resolvedUid);
+        } else {
+          setUserId(data.email || savedEmail);
+        }
       })
-      .catch((err) => console.error("User resolve error:", err));
+      .catch((err) => {
+        console.error("User resolve error:", err);
+        setUserId(savedEmail);
+      });
 
     // Pipeline 2: Pull flight data from database matching current routing ID parameter
     fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights")
@@ -60,7 +76,7 @@ export default function BookFlightPage() {
         throw new Error("Failed to fetch flight inventory.");
       })
       .then((flights: FlightDetails[]) => {
-        const matchedFlight = flights.find((f) => f._id === id || f.id === id);
+        const matchedFlight = flights.find((f) => String(f._id) === String(id) || String(f.id) === String(id));
         if (matchedFlight) {
           setFlight(matchedFlight);
         }
@@ -73,11 +89,7 @@ export default function BookFlightPage() {
   }, [id, router]);
 
   const handlePaymentSubmit = async () => {
-    if (!userId) {
-      alert("Your user session couldn't be validated. Please log in again.");
-      return;
-    }
-
+    const targetUserId = userId || localStorage.getItem("email") || "guest_user";
     setLoadingPayment(true);
 
     try {
@@ -85,7 +97,7 @@ export default function BookFlightPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: userId,
+          userId: targetUserId,
           flightId: id,
           seats: tickets,
           price: totalAmount,
@@ -98,10 +110,10 @@ export default function BookFlightPage() {
 
       alert("Payment Successful! Your flight booking is confirmed.");
       setShowPaymentModal(false);
-      router.push("/profile"); // Instantly navigate to dashboard tracking view
-    } catch (err) {
+      router.push("/profile"); 
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to record booking with database. Please try again.");
+      alert(`Booking Failed: ${err.message || "Failed to record booking with database. Please try again."}`);
     } finally {
       setLoadingPayment(false);
     }
@@ -126,7 +138,9 @@ export default function BookFlightPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="bg-slate-900 text-white text-xs font-bold px-3 py-1 rounded">ADMIN</span>
-          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-sm">U</div>
+          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-sm">
+            {userEmailAddress ? userEmailAddress.charAt(0).toUpperCase() : "U"}
+          </div>
         </div>
       </header>
 
@@ -139,7 +153,6 @@ export default function BookFlightPage() {
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left">
             <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
               <div>
-                {/* FIXED: Dynamic Location Strings mapped from search choice selection */}
                 <h2 className="text-lg font-bold flex items-center gap-3 text-gray-900 capitalize">
                   {flight ? `${flight.from} ➔ ${flight.to}` : "Paris ➔ Tokyo"}
                   <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded uppercase tracking-wide">Cancellation Fees Apply</span>
@@ -152,7 +165,6 @@ export default function BookFlightPage() {
             <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-md mb-6">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-lg shadow-sm">✈️</div>
               <div>
-                {/* FIXED: Dynamic Flight Identity details loaded directly from Database object definitions */}
                 <h3 className="font-bold text-sm text-gray-900">{flight ? flight.name : "SkyHigh 202"}</h3>
                 <p className="text-xs text-slate-400">Airbus A320 • Economy • MMTSPECIAL • Available Seats: {flight ? flight.availableSeats : 0}</p>
               </div>
@@ -316,10 +328,50 @@ export default function BookFlightPage() {
         )}
       </main>
 
-      <footer className="bg-slate-950 text-slate-400 text-xs py-12 px-12 border-t border-slate-900 mt-auto">
-        <div className="max-w-6xl w-full mx-auto pt-6 mt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-600 text-[11px]">
+      {/* DYNAMIC TRAINING SPECIFICATION FOOTER HUB */}
+      <footer className="bg-[#0b122c] text-slate-400 text-xs py-12 px-12 mt-auto border-t border-slate-900/60">
+        <div className="max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-left mb-8 border-b border-slate-800/60 pb-8">
+          <div className="space-y-2">
+            <h5 className="text-white font-bold text-sm">Why MakeMyTour?</h5>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              Established in 2000, MakeMyTour has since positioned itself as one of the leading companies, providing great offers, competitive airfares, exclusive discounts, and a seamless online booking experience.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h5 className="text-white font-bold text-sm">Booking Flights with MakeMyTour</h5>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              Book your flight tickets with India's leading flight booking company. Get best deals on flights, train tickets, buses, hotels and holiday packages.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h5 className="text-white font-bold text-sm">Domestic Flights with MakeMyTour</h5>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              MakeMyTour is India's leading player for flight bookings. With the cheapest fare guarantee, experience great value at the lowest price.
+            </p>
+          </div>
+          <div className="flex flex-col gap-4 text-[11px]">
+            <div>
+              <h6 className="text-white font-bold mb-1.5 uppercase tracking-wider">ABOUT THE SITE</h6>
+              <div className="space-y-0.5 text-slate-400">
+                <p className="hover:text-white cursor-pointer transition-colors">About Us</p>
+                <p className="hover:text-white cursor-pointer transition-colors">Investor Relations</p>
+                <p className="hover:text-white cursor-pointer transition-colors">Careers</p>
+              </div>
+            </div>
+            <div>
+              <h6 className="text-white font-bold mb-1.5 uppercase tracking-wider">IMPORTANT LINKS</h6>
+              <div className="space-y-0.5 text-slate-400">
+                <p className="hover:text-white cursor-pointer transition-colors">Privacy Policy</p>
+                <p className="hover:text-white cursor-pointer transition-colors">Terms & Conditions</p>
+                <p className="hover:text-white cursor-pointer transition-colors">User Agreement</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl w-full mx-auto flex justify-between items-center text-slate-500 text-[11px]">
           <p>© 2026 MakeMyTour PVT. LTD. All rights reserved</p>
-          <span className="font-semibold tracking-widest text-slate-700 uppercase">NULCLASS EDITION</span>
+          <span className="font-bold text-slate-600 tracking-wider">NULCLASS EDITION</span>
         </div>
       </footer>
 
