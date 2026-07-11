@@ -47,4 +47,19 @@ public class BookingController {
             return ResponseEntity.badRequest().body("Hotel booking failed: " + e.getMessage());
         }
     }
+
+    // ❌ TASK 1 ENDPOINT: CANCEL RESERVATION AND CALCULATE AUTOMATIC REFUND
+    @PostMapping("/cancel")
+    public ResponseEntity<?> cancelBooking(@RequestBody Map<String, Object> payload) {
+        try {
+            String userId = (String) payload.get("userId");
+            String bookingId = (String) payload.get("bookingId");
+            String reason = (String) payload.get("reason");
+
+            Booking cancelledBooking = bookingService.cancelBooking(userId, bookingId, reason);
+            return ResponseEntity.ok(cancelledBooking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Cancellation failed: " + e.getMessage());
+        }
+    }
 }

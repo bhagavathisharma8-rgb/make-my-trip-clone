@@ -14,7 +14,7 @@ public class Users {
     private String password;
     private String role;
     private String phoneNumber;
-    private List<Booking> bookings; // 👈 Added to store user order logs
+    private List<Booking> bookings;
 
     // Existing Getters and Setters
     public String get_id() { return _id; }
@@ -38,7 +38,6 @@ public class Users {
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
-    // Bookings Array List Getters and Setters
     public List<Booking> getBookings() { return bookings; }
     public void setBookings(List<Booking> bookings) { this.bookings = bookings; }
 
@@ -48,9 +47,15 @@ public class Users {
     public static class Booking {
         private String type;
         private String bookingId;
-        private String date;
+        private String date; // Format could be string from client
         private int quantity;
         private double totalPrice;
+        private boolean isCancelled = false;
+        private String cancellationReason;
+        private java.time.LocalDateTime cancelledAt;
+        private double refundAmount = 0.0;
+        private String refundStatus = "NONE";
+        private String expectedTimeline;
 
         // Inner Getters and Setters
         public String getType() { return type; }
@@ -67,5 +72,23 @@ public class Users {
 
         public double getTotalPrice() { return totalPrice; }
         public void setTotalPrice(double totalPrice) { this.totalPrice = totalPrice; }
+
+        public boolean isCancelled() { return isCancelled; }
+        public void setCancelled(boolean cancelled) { isCancelled = cancelled; }
+
+        public String getCancellationReason() { return cancellationReason; }
+        public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
+
+        public java.time.LocalDateTime getCancelledAt() { return cancelledAt; }
+        public void setCancelledAt(java.time.LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+
+        public double getRefundAmount() { return refundAmount; }
+        public void setRefundAmount(double refundAmount) { this.refundAmount = refundAmount; }
+
+        public String getRefundStatus() { return refundStatus; }
+        public void setRefundStatus(String refundStatus) { this.refundStatus = refundStatus; }
+
+        public String getExpectedTimeline() { return expectedTimeline; }
+        public void setExpectedTimeline(String expectedTimeline) { this.expectedTimeline = expectedTimeline; }
     }
 }
