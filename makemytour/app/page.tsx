@@ -229,6 +229,7 @@ export default function Home() {
               <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🚂</span>Trains</span>
               <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🚌</span>Buses</span>
               <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🗺️</span>Tourism</span>
+              <span onClick={() => router.push("/flight-status")} className="flex flex-col items-center gap-1 cursor-pointer text-blue-600 hover:text-blue-700 font-bold"><span className="text-base animate-pulse">📡</span>Live Radar</span>
             </div>
           </nav>
 

@@ -21,6 +21,7 @@ interface BookingItem {
   seatPreference?: string;
   travelDate?: string;
   seatNumber?: string;
+  currency?: "INR" | "USD"; // Added to handle currency selection
 }
 
 interface UserProfileData {
@@ -75,6 +76,11 @@ export default function ProfileDashboardPage() {
     ? "http://localhost:8081"
     : "https://make-my-trip-clone-qaq2.onrender.com";
 
+  // ADDED: Currency Formatting Utility
+  const getDisplayPrice = (amount: number, currency: string = "INR") => {
+    return currency === "USD" ? `$${amount.toLocaleString()}` : `₹${amount.toLocaleString()}`;
+  };
+
   const fetchProfileData = () => {
     const savedEmail = localStorage.getItem("email");
     if (!savedEmail) {
@@ -115,20 +121,22 @@ export default function ProfileDashboardPage() {
               passengerAge: 26,
               seatPreference: "Window",
               travelDate: "2026-07-15",
-              seatNumber: "--"
+              seatNumber: "--",
+              currency: "INR"
             },
             {
               type: "Flight",
               bookingId: "6a5125a953d21de6d237680d",
               date: "11 Jul 2026",
               quantity: 1,
-              totalPrice: 4873,
+              totalPrice: 120,
               cancelled: false,
               passengerName: "Shankara",
               passengerAge: 26,
               seatPreference: "Window",
               travelDate: "2026-07-15",
-              seatNumber: "12A"
+              seatNumber: "12A",
+              currency: "USD"
             }
           ]
         });
@@ -267,7 +275,6 @@ export default function ProfileDashboardPage() {
             {userData?.firstName ? userData.firstName.charAt(0).toUpperCase() : "S"}
           </button>
 
-          {/* FIXED: User Profile textual marker updated cleanly to "My Account" header context */}
           {showNavbarDropdown && (
             <div className="absolute right-0 top-10 w-56 bg-white border border-gray-200 rounded-xl shadow-xl py-3 z-50 text-left">
               <div className="px-4 pb-2 border-b border-gray-100">
@@ -370,7 +377,7 @@ export default function ProfileDashboardPage() {
         {/* RIGHT COLUMN CENTRAL CONFIG DISPLAY ROUTER WINDOW */}
         <div className="md:col-span-8 bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6 text-left">
           
-          {/* CONTENT PATHWAY A: DISPLAY STATIC LOGS (BOOKINGS EXCLUDED MATCHING REQS) */}
+          {/* CONTENT PATHWAY A: DISPLAY STATIC LOGS */}
           {activeAccountTab === "profile" && !showBookingsView && (
             <div className="space-y-6 animate-in fade-in duration-100">
               <div className="border-b pb-2">
@@ -384,7 +391,7 @@ export default function ProfileDashboardPage() {
             </div>
           )}
 
-          {/* CONTENT PATHWAY B: BOOKINGS MATRIX HISTORY LIST (RENDERED SEPARATELY MATCHING REQS) */}
+          {/* CONTENT PATHWAY B: BOOKINGS MATRIX HISTORY LIST */}
           {activeAccountTab === "profile" && showBookingsView && (
             <div className="space-y-4 animate-in fade-in duration-100">
               <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Filtered Booking Specifications Array</h4>
@@ -412,7 +419,7 @@ export default function ProfileDashboardPage() {
                       <p>Age Profile: <span className="text-gray-900 block font-black">{booking.passengerAge || 26} Yrs</span></p>
                       <p>Travel Departure Date: <span className="text-blue-600 block font-black">📅 {booking.travelDate || "2026-07-15"}</span></p>
                       <p>Assigned Seat Number: <span className="text-emerald-700 block font-black font-mono text-xs">{booking.cancelled ? "--" : (booking.seatNumber || "12A")} ({booking.seatPreference || "Window"})</span></p>
-                      <p>Gross Price: <span className="text-gray-900 block font-black">₹ {booking.totalPrice.toLocaleString()}</span></p>
+                      <p>Gross Price: <span className="text-gray-900 block font-black">{getDisplayPrice(booking.totalPrice, booking.currency || "INR")}</span></p>
                       
                       {!booking.cancelled && (
                         <div className="flex gap-1.5 items-end justify-start pt-1">
@@ -422,15 +429,14 @@ export default function ProfileDashboardPage() {
                       )}
                     </div>
 
-                    {/* FIXED PERMANENTLY: Black tracking block removed. Substituted with a clean text block mapping precise cancellation dates */}
                     {booking.cancelled && (
                       <div className="p-4 border border-red-200 bg-red-50/30 rounded-xl text-left space-y-1.5 font-medium text-slate-600">
                         <p className="text-red-700 font-black uppercase text-[10px] tracking-wide">❌ Cancellation & Refund Summary Status</p>
                         <p>Reason for Cancellation: <span className="text-gray-900 font-bold">"{booking.cancellationReason || "Change of plans"}"</span></p>
                         <p>Date Booked: <span className="text-gray-900 font-bold">📅 {booking.date ? new Date(booking.date).toLocaleDateString() : "11 Jul 2026"}</span></p>
                         <p>Date Cancelled: <span className="text-gray-900 font-bold">📅 12 Jul 2026</span></p>
-                        <p>Date Amount Refunded: <span className="text-emerald-700 font-black">📅 12 Jul 2026 (Succeeded Settle via E-Wallet)</span></p>
-                        <p>Refund Amount (70% Rule Applied): <span className="text-emerald-700 font-black">₹ {(booking.refundAmount || booking.totalPrice * 0.70).toLocaleString()}</span></p>
+                        <p>Date Amount Refunded: <span className="text-emerald-700 font-black">📅 12 Jul 2026</span></p>
+                        <p>Refund Amount (70% Rule Applied): <span className="text-emerald-700 font-black">{getDisplayPrice(booking.refundAmount || booking.totalPrice * 0.70, booking.currency || "INR")}</span></p>
                       </div>
                     )}
 
@@ -452,7 +458,7 @@ export default function ProfileDashboardPage() {
             <div className="space-y-6">
               <div className="border-b pb-2 flex justify-between items-center">
                 <h3 className="text-base font-black text-gray-950 uppercase tracking-wide">💳 MakeMyTour E-Wallet Dashboard</h3>
-                <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">Net Balance: ₹ {walletBalance.toLocaleString()}</span>
+                <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">Net Balance: {getDisplayPrice(walletBalance, "INR")}</span>
               </div>
               
               <div className="bg-slate-50 border p-5 rounded-xl space-y-3 shadow-inner">
@@ -482,7 +488,7 @@ export default function ProfileDashboardPage() {
                           <td className="p-3"><span className={`px-2 py-0.5 rounded text-[9px] font-black ${log.type === 'DEPOSIT' || log.type === 'REFUND' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{log.type}</span></td>
                           <td className="p-3 text-gray-900 font-medium">{log.description}</td>
                           <td className={`p-3 text-right font-black ${log.type === 'DEPOSIT' || log.type === 'REFUND' ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {log.type === 'DEPOSIT' || log.type === 'REFUND' ? '+' : '-'} ₹{log.amount.toLocaleString()}
+                            {log.type === 'DEPOSIT' || log.type === 'REFUND' ? '+' : '-'} {getDisplayPrice(log.amount, "INR")}
                           </td>
                         </tr>
                       ))}
@@ -506,13 +512,12 @@ export default function ProfileDashboardPage() {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Confirm Target Password Key</label>
-                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat password entry strings" className="w-full border p-2.5 bg-slate-50 text-xs font-bold rounded-lg outline-none text-black focus:bg-white" />
+                  <input type="password" value={confirmPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Repeat password entry strings" className="w-full border p-2.5 bg-slate-50 text-xs font-bold rounded-lg outline-none text-black focus:bg-white" />
                 </div>
                 <button type="submit" className="bg-slate-900 hover:bg-black text-white font-bold px-4 py-2.5 rounded-lg uppercase text-[11px] tracking-wider transition-all">Save Secure Credentials</button>
               </form>
             </div>
           )}
-
         </div>
       </main>
 
