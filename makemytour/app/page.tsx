@@ -36,33 +36,37 @@ export default function Home() {
 
   const cities = ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Goa", "Shimla", "Paris", "Tokyo", "Davangere", "Bali", "New York", "London", "Dubai", "Singapore", "Sydney", "Indonesia", "France"];
 
-  // Automated sliding carousel facility records with premium feature markers
   const [carouselIndex, setCarouselIndex] = useState(0);
   const websiteFacilitiesSlides = [
     {
-      url: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=80",
-      title: "✈️ Next-Gen Premium Flight Connections",
-      facilities: "In-Flight Wi-Fi Internet Access • Golden Star Score Indexes • Instant 70% Refund Statement Payouts"
+      url: "https://images.unsplash.com/photo-1540962351504-03099e0a754b?auto=format&fit=crop&w=1600&q=80",
+      title: "✈️ Jet off to Your Next Dream Destination",
+      facilities: "Global Flight Interconnections • Premium On-Board Hot Catering • Instant 100% Secure Checkout Protocols"
     },
     {
       url: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1600&q=80",
-      title: "🏨 Luxury Handpicked Hotels & Resorts Stays",
-      facilities: "All-Inclusive Resort Credits • Multi-Currency Support Nodes • Automated Local Wallet Checkouts"
+      title: "🏨 Unlock Breathtaking Luxury Resorts & Stays",
+      facilities: "Handpicked 5-Star Properties • Complimentary Room Upgrades • All-Inclusive Poolside & Spa Retreat Credits"
     },
     {
       url: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1600&q=80",
-      title: "🚌 Express Sleeper Inter-City Highway Coaches",
-      facilities: "Ergonomic Push-Back Beds • Dedicated Device Charging Slots • Real-Time GPS Journey Trackers"
+      title: "🚌 Experience Scenic Road Trips & Highway Coaches",
+      facilities: "Ultra-Comfortable Sleeper Berths • Individual Power Outlets • Real-Time Live GPS Journey Mapping Systems"
     },
     {
       url: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1600&q=80",
       title: "🚂 High-Speed Rail Networks Bullet Express",
-      facilities: "Gourmet Lounge Dining Options • Panoramic Vista-Dome Window Cabins • Priority Security Gates"
+      facilities: "Vista-Dome Panoramic Window Suites • Gourmet Lounge Cabins • Priority Express Station Boarding Gates"
     },
     {
-      url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1600&q=80",
-      title: "🏠 Countryside Heritage Eco-Homestays & Heritage Villas",
-      facilities: "Authentic Cultural Cuisines • Remote Workspace High-Speed Desks • Guided Wilderness Trails"
+      url: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1600&q=80",
+      title: "🗺️ Wander Often: Curated Guided Excursions & Tourism",
+      facilities: "Expert Local Travel Planners • Tailor-Made Sightseeing Agendas • Skip-the-Line Monument Entry Passes"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
+      title: "🏠 Escape to Beautiful Luxury White Villas & Homestays",
+      facilities: "Authentic Cultural Living Escapes • Remote Workspace High-Speed Connectivity • Guided Outdoor Eco-Trails"
     }
   ];
 
@@ -80,19 +84,14 @@ export default function Home() {
     { title: "A pleasant summer retreat", img: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80" }
   ];
 
-  // Set mounted true on client load to safely bypass server hydration mismatch blocks
   useEffect(() => {
     setMounted(true);
-
-    // Automate carousel loops smoothly every 3000ms
     const interval = setInterval(() => {
       setCarouselIndex((prev) => (prev + 1) % websiteFacilitiesSlides.length);
     }, 3000);
-
     return () => clearInterval(interval);
   }, [websiteFacilitiesSlides.length]);
 
-  // Sync auth view states
   useEffect(() => {
     const savedEmail = localStorage.getItem("email");
     if (savedEmail) {
@@ -104,77 +103,15 @@ export default function Home() {
     }
   }, [modalOpen]);
 
-  // Click outside listener handling window dropdown closures cleanly
   useEffect(() => {
     function handleClickOutside(event: any) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-      if (fromCityRef.current && !fromCityRef.current.contains(event.target as Node)) {
-        setShowFromDropdown(false);
-      }
-      if (toCityRef.current && !toCityRef.current.contains(event.target as Node)) {
-        setShowToDropdown(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setDropdownOpen(false);
+      if (fromCityRef.current && !fromCityRef.current.contains(event.target as Node)) setShowFromDropdown(false);
+      if (toCityRef.current && !toCityRef.current.contains(event.target as Node)) setShowToDropdown(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleSearchExecute = async () => {
-    if (!isLoggedIn) {
-      alert("Please login or sign up first to search and book travel routes!");
-      setAuthView("login");
-      setModalOpen(true);
-      return;
-    }
-
-    if (!toCity) {
-      alert("Please select a destination city first!");
-      return;
-    }
-
-    setSearchLoading(true);
-
-    try {
-      if (currentTab === "flights") {
-        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights");
-        if (!res.ok) throw new Error("Could not pull flight inventory records.");
-        const flights = await res.json();
-
-        const matchedFlight = flights.find(
-          (f: any) => 
-            f.from?.toLowerCase() === fromCity.toLowerCase() && 
-            f.to?.toLowerCase() === toCity.toLowerCase()
-        );
-
-        if (matchedFlight) {
-          router.push(`/book-flight/${matchedFlight._id || matchedFlight.id}`);
-        } else {
-          alert(`There is no flight for this location (${fromCity} to ${toCity}).`);
-        }
-      } else {
-        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/hotels");
-        if (!res.ok) throw new Error("Could not pull hotel inventory records.");
-        const hotels = await res.json();
-
-        const matchedHotel = hotels.find(
-          (h: any) => h.location?.toLowerCase() === toCity.toLowerCase()
-        );
-
-        if (matchedHotel) {
-          router.push(`/book-hotel/${matchedHotel._id || matchedHotel.id}`);
-        } else {
-          alert(`There is no hotel for this location (${toCity}).`);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error checking availability records from database. Please ensure your backend is up.");
-    } finally {
-      setSearchLoading(false);
-    }
-  };
 
   const handleMarketingBookNow = (tab: "flights" | "hotels", destination: string) => {
     setCurrentTab(tab);
@@ -190,18 +127,52 @@ export default function Home() {
     window.location.reload();
   };
 
-  // First-letter string auto-filtering logic from cities pool array data indexes
-  const filteredFromCityDropdownPool = cities.filter(c => 
-    c.toLowerCase().startsWith(fromCity.toLowerCase().trim()) && c.toLowerCase() !== toCity.toLowerCase()
-  );
+  const handleSearchExecute = async () => {
+    if (!isLoggedIn) {
+      alert("Please login or sign up first to search and book travel routes!");
+      setAuthView("login");
+      setModalOpen(true);
+      return;
+    }
+    if (!toCity) {
+      alert("Please select a destination city first!");
+      return;
+    }
 
-  const filteredToCityDropdownPool = cities.filter(c => 
-    c.toLowerCase().startsWith(toCity.toLowerCase().trim()) && c.toLowerCase() !== fromCity.toLowerCase()
-  );
+    setSearchLoading(true);
+    try {
+      if (currentTab === "flights") {
+        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights");
+        const flights = await res.json();
+        const matched = flights.find((f: any) => f.from?.toLowerCase() === fromCity.toLowerCase() && f.to?.toLowerCase() === toCity.toLowerCase());
+        
+        if (matched) {
+          router.push(`/book-flight/${matched._id || matched.id}`);
+        } else {
+          alert(`There is no active operational flight map for ${fromCity} to ${toCity}.`);
+        }
+      } else {
+        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/hotels");
+        const hotels = await res.json();
+        const matched = hotels.find((h: any) => h.location?.toLowerCase() === toCity.toLowerCase());
+        
+        if (matched) {
+          router.push(`/book-hotel/${matched._id || matched.id}`);
+        } else {
+          alert(`No active hotel listings found inside ${toCity}.`);
+        }
+      }
+    } catch (err) {
+      alert("Server sync failure.");
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
-  if (!mounted) {
-    return <div className="min-h-screen bg-slate-100" />;
-  }
+  const filteredFromCollection = cities.filter(c => c.toLowerCase().startsWith(fromCity.toLowerCase().trim()) && c !== toCity);
+  const filteredToCollection = cities.filter(c => c.toLowerCase().startsWith(toCity.toLowerCase().trim()) && c !== fromCity);
+
+  if (!mounted) return <div className="min-h-screen bg-slate-100" />;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans overflow-x-hidden text-slate-800">
@@ -225,16 +196,12 @@ export default function Home() {
               <Link href="/admin" className="text-xs bg-black text-slate-200 border border-slate-700/50 px-4 py-2 rounded font-bold hover:bg-slate-900 transition-all uppercase tracking-wider backdrop-blur-sm shadow-sm">
                 ADMIN PORTAL
               </Link>
-              <button 
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-9 h-9 rounded-full bg-white text-emerald-800 font-bold flex items-center justify-center shadow-md text-base border border-slate-200 hover:scale-105 transition-transform"
-              >
-                {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
+              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-9 h-9 rounded-full bg-white text-emerald-800 font-bold flex items-center justify-center shadow-md text-base border border-slate-200">
+                {userEmail ? userEmail.charAt(0).toUpperCase() : "S"}
               </button>
               
-              {/* Dropdown heading set to "My Account" overlay profile context view wrapper layout */}
               {dropdownOpen && (
-                <div className="absolute right-[-20px] top-[45px] w-64 bg-white rounded-xl shadow-2xl border py-3 z-50 text-left">
+                <div className="absolute right-0 top-[45px] w-64 bg-white rounded-xl shadow-2xl border py-3 z-50 text-left">
                   <div className="px-4 py-2 border-b">
                     <p className="text-sm font-extrabold text-slate-900">My Account</p>
                     <p className="text-xs text-slate-400 font-medium truncate mt-0.5">{userEmail}</p>
@@ -245,77 +212,53 @@ export default function Home() {
               )}
             </>
           ) : (
-            <>
-              <button onClick={() => { setAuthView("login"); setModalOpen(true); }} className="text-sm font-semibold text-white hover:text-blue-300 transition-colors">Login</button>
-              <button onClick={() => { setAuthView("signup"); setModalOpen(true); }} className="text-xs font-bold uppercase tracking-wider bg-white text-slate-900 px-4 py-2 rounded shadow hover:bg-gray-100 transition-all">Sign Up</button>
-            </>
+            <button onClick={() => { setAuthView("login"); setModalOpen(true); }} className="bg-blue-600 text-white text-xs font-black px-4 py-2 rounded-lg shadow-md uppercase">Instant Login</button>
           )}
         </div>
       </header>
 
-      {/* CORE HERO WORKSPACE HUB CONTAINER */}
-      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 pt-4 pb-12 space-y-12">
-        
-        {/* INTERACTIVE CATEGORIES & SEARCH MODULE BOX */}
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6 space-y-6">
-          <nav className="flex justify-between items-center border-b border-slate-100 pb-4 overflow-x-auto gap-6 text-slate-400 font-medium text-xs">
+      {/* CORE HERO SEARCH COMPONENT PANEL CONTAINER */}
+      <main className="relative z-10 max-w-6xl w-full mx-auto px-4 pt-4 pb-6 space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl border p-6 space-y-6">
+          <nav className="flex items-center justify-between border-b pb-4 overflow-x-auto gap-6 text-slate-400 font-medium text-xs">
             <div className="flex items-center gap-8 text-sm">
-              <span 
-                onClick={() => setCurrentTab("flights")}
-                className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "flights" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}
-              >
-                <span className="text-lg">✈️</span>Flights
-              </span>
-              <span 
-                onClick={() => setCurrentTab("hotels")}
-                className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "hotels" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}
-              >
-                <span className="text-lg">🏨</span>Hotels
-              </span>
+              <span onClick={() => setCurrentTab("flights")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "flights" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">✈️</span>Flights</span>
+              <span onClick={() => setCurrentTab("hotels")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "hotels" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🏨</span>Hotels</span>
+              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🏠</span>Homestays</span>
+              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🏖️</span>Holiday</span>
+              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🚂</span>Trains</span>
+              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🚌</span>Buses</span>
+              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🗺️</span>Tourism</span>
             </div>
           </nav>
 
           {/* DYNAMIC AUTOCOMPLETE INPUT MATRIX INTERFACES */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-white relative">
-            
-            {/* FROM AUTOCOMPLETE INPUT LINK */}
             <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50 relative" ref={fromCityRef}>
               <div onClick={() => { setShowFromDropdown(true); setShowToDropdown(false); }}>
                 <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">From City Source</span>
-                <input 
-                  type="text" 
-                  value={fromCity} 
-                  onChange={(e) => setFromCity(e.target.value)}
-                  className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none p-0 focus:ring-0" 
-                />
+                <input type="text" value={fromCity} onChange={(e) => setFromCity(e.target.value)} className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none focus:ring-0 p-0" />
                 <span className="text-xs text-slate-400 truncate block mt-1">Change departure city faster</span>
               </div>
               {showFromDropdown && (
                 <div className="absolute left-0 right-0 top-16 bg-white border rounded-lg shadow-2xl z-50 max-h-40 overflow-y-auto font-bold">
-                  {filteredFromCityDropdownPool.map((city) => (
-                    <button key={city} onMouseDown={() => { setFromCity(city); setShowFromDropdown(false); }} className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 block">{city}</button>
+                  {filteredFromCollection.map(city => (
+                    <button type="button" key={city} onMouseDown={() => { setFromCity(city); setShowFromDropdown(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer block">{city}</button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* TO AUTOCOMPLETE INPUT LINK */}
             <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50 relative" ref={toCityRef}>
               <div onClick={() => { setShowToDropdown(true); setShowFromDropdown(false); }}>
                 <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">To Destination</span>
-                <input 
-                  type="text" 
-                  value={toCity} 
-                  placeholder="Where to? Select destination"
-                  onChange={(e) => setToCity(e.target.value)}
-                  className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none p-0 focus:ring-0 placeholder:italic placeholder:font-normal placeholder:text-slate-300" 
-                />
+                <input type="text" value={toCity} placeholder="Where to?" onChange={(e) => setToCity(e.target.value)} className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none focus:ring-0 p-0 placeholder:italic placeholder:font-normal placeholder:text-slate-300" />
                 <span className="text-xs text-slate-400 truncate block mt-1">Select destination place faster</span>
               </div>
               {showToDropdown && (
                 <div className="absolute left-0 right-0 top-16 bg-white border rounded-lg shadow-2xl z-50 max-h-40 overflow-y-auto font-bold">
-                  {filteredToCityDropdownPool.map((city) => (
-                    <button key={city} onMouseDown={() => { setToCity(city); setShowToDropdown(false); }} className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 block">{city}</button>
+                  {filteredToCollection.map(city => (
+                    <button type="button" key={city} onMouseDown={() => { setToCity(city); setShowToDropdown(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer block">{city}</button>
                   ))}
                 </div>
               )}
@@ -336,26 +279,31 @@ export default function Home() {
             </button>
           </div>
         </div>
+      </main>
 
-        {/* EDGE-TO-END SCREEN SLIDING CAROUSEL BOX OUTLINED WITH SLENDER WHITE BORDER EDGE FRACTION STRIPS */}
-        <div className="w-full bg-white p-1.5 rounded-2xl shadow-md border border-gray-200/80">
-          <div className="w-full h-80 rounded-xl overflow-hidden relative group">
-            <img src={websiteFacilitiesSlides[carouselIndex].url} alt="Slider" className="w-full h-full object-cover filter brightness-[0.35] transition-all duration-700 ease-in-out" />
-            <div className="absolute inset-0 flex flex-col justify-center px-12 text-white max-w-xl space-y-2 text-left">
-              <span className="bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full w-fit">MakeMyTour Facilities Hub</span>
-              <h2 className="text-xl md:text-2xl font-black tracking-tight leading-tight">{websiteFacilitiesSlides[carouselIndex].title}</h2>
-              <p className="text-[11px] text-slate-300 font-medium leading-relaxed">{websiteFacilitiesSlides[carouselIndex].facilities}</p>
-            </div>
-            
-            <div className="absolute bottom-3 right-4 flex gap-1">
-              {websiteFacilitiesSlides.map((_, i) => (
-                <span key={i} onClick={() => setCarouselIndex(i)} className={`h-1.5 rounded-full cursor-pointer transition-all duration-300 ${carouselIndex === i ? 'w-4 bg-blue-500' : 'w-1.5 bg-white/50'}`} />
-              ))}
-            </div>
+      {/* FIXED: Thick white padding frame (p-6) with a slightly shorter, optimized image height (h-[340px]) */}
+      <div className="w-full bg-white p-6 border-y border-slate-200 shadow-sm z-10 mb-12">
+        <div className="w-full h-[340px] overflow-hidden relative group shadow-inner">
+          <img src={websiteFacilitiesSlides[carouselIndex].url} alt="Travel Hub Slider" className="w-full h-full object-cover transition-all duration-700 ease-in-out" />
+          
+          {/* Overlay Layout Labels */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-10 text-white text-left space-y-1">
+            <span className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full w-fit mb-2 block shadow-md">MakeMyTour Facilities Hub</span>
+            <h2 className="text-xl md:text-2xl font-black tracking-tight drop-shadow-md">{websiteFacilitiesSlides[carouselIndex].title}</h2>
+            <p className="text-xs md:text-sm text-slate-200 font-semibold tracking-wide drop-shadow-sm">{websiteFacilitiesSlides[carouselIndex].facilities}</p>
+          </div>
+          
+          {/* Slider Pagination Nodes */}
+          <div className="absolute bottom-6 right-8 flex gap-2 z-20">
+            {websiteFacilitiesSlides.map((_, i) => (
+              <span key={i} onClick={() => setCarouselIndex(i)} className={`h-1.5 rounded-full cursor-pointer transition-all duration-300 ${carouselIndex === i ? 'w-5 bg-blue-500' : 'w-1.5 bg-white/60 hover:bg-white'}`} />
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* SECTION: BEST OFFERS MARKETING CARDS */}
+      {/* MARKETING OFFERS & SECTION CONTENT GRIDS */}
+      <main className="relative z-10 max-w-6xl w-full mx-auto px-4 pb-12 space-y-12">
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-900 text-left tracking-tight">Best Offers for You</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -394,7 +342,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* SECTION: POPULAR STAY ESCAPES */}
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-900 text-left tracking-tight">Popular Stay Escapes</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -409,7 +356,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* SECTION: UNLOCK LESSER-KNOWN WONDERS OF INDIA */}
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-900 text-left tracking-tight">Unlock Lesser-Known Wonders of India</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -442,7 +388,6 @@ export default function Home() {
             <p className="text-[11px] text-slate-400 font-medium text-left max-w-[120px] leading-tight">Scan QR code to download the application instantly.</p>
           </div>
         </div>
-
       </main>
 
       {/* FOOTER */}
@@ -486,7 +431,6 @@ export default function Home() {
           <span className="font-semibold text-slate-800 tracking-wider">NULCLASS</span>
         </div>
       </footer>
-
       <AuthModals isOpen={modalOpen} onClose={() => setModalOpen(false)} initialView={authView} />
     </div>
   );

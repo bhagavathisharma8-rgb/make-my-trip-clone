@@ -16,6 +16,7 @@ interface FlightDetails {
   imageUrl?: string;
   timings?: string;
   operatingDays?: string;
+  nation?: string;
 }
 
 interface Passenger {
@@ -97,15 +98,16 @@ export default function BookFlightPage() {
     ? "http://localhost:8081"
     : "https://make-my-trip-clone-qaq2.onrender.com";
 
-  // TASK REQUIREMENT: Dynamic Currency Converter checking for International destinations ($ vs ₹)
-  const formatPriceValue = (amount: number, fromCityName: string, toCityName: string) => {
+  // TASK REQUIREMENT: Dynamic Currency Converter checking for Indian domestic vs International destinations ($ vs ₹)
+  const formatPriceValue = (amount: number, fromCityName: string, toCityName: string, nationField?: string) => {
     const domesticIndianCities = ["delhi", "mumbai", "bangalore", "kolkata", "goa", "shimla", "davangere"];
-    const isInternational = !domesticIndianCities.includes(fromCityName.toLowerCase().trim()) || 
-                            !domesticIndianCities.includes(toCityName.toLowerCase().trim());
-    if (isInternational) {
-      return `$ ${(amount / 85).toFixed(2)}`; // Convert directly to standard USD values
+    
+    if ((nationField && nationField.toLowerCase() === "india") || 
+        (domesticIndianCities.includes(fromCityName.toLowerCase().trim()) && 
+         domesticIndianCities.includes(toCityName.toLowerCase().trim()))) {
+      return `₹ ${amount.toLocaleString()}`;
     }
-    return `₹ ${amount.toLocaleString()}`;
+    return `$ ${(amount / 85).toFixed(2)}`;
   };
 
   const basePricePerTicket = flight 
@@ -136,7 +138,7 @@ export default function BookFlightPage() {
       .catch(() => setUserId(savedEmail));
   }, [router, BASE_URL]);
 
-  // TASK REQUIREMENT: Fetch reviews dynamically isolated by the activeFlightId state
+  // TASK REQUIREMENT: Isolated flight review and flight data parameters loop dynamically tied to activeFlightId
   useEffect(() => {
     setLoadingData(true);
     fetch(`${BASE_URL}/admin/flights`)
@@ -150,7 +152,8 @@ export default function BookFlightPage() {
             "https://images.unsplash.com/photo-1483450388369-9ed95738483c?auto=format&fit=crop&w=600&q=80"
           ][i % 3],
           timings: f.timings || "03:41 PM ➔ 06:41 PM",
-          operatingDays: f.operatingDays || "Daily"
+          operatingDays: f.operatingDays || "Daily",
+          nation: f.nation || (["delhi", "mumbai", "bangalore"].includes(f.from.toLowerCase()) ? "India" : "International")
         }));
         
         setAllFlightsInventory(enriched);
@@ -265,7 +268,7 @@ export default function BookFlightPage() {
 
   const handleValidateCheckoutFlow = () => {
     if (!searchDate) {
-      alert("Please choose a valid travel departure date.");
+      alert("Please choose a valid travel departure calendar date.");
       return;
     }
     for (let i = 0; i < passengers.length; i++) {
@@ -330,7 +333,7 @@ export default function BookFlightPage() {
   const seatRows = [1, 2, 3, 4, 5, 6];
   const seatLetters = ["A", "B", "C", "D", "E", "F"];
 
-  // Real-time first-letter suggestion mapping filters
+  // Real-time first-letter suggestion autocomplete filter arrays
   const filteredFromCitiesPool = standardCitiesPool.filter(c => c.toLowerCase().startsWith(searchFrom.toLowerCase().trim()));
   const filteredToCitiesPool = standardCitiesPool.filter(c => c.toLowerCase().startsWith(searchTo.toLowerCase().trim()));
 
@@ -357,7 +360,7 @@ export default function BookFlightPage() {
         </div>
       </header>
 
-      {/* TASK REQUIREMENT: IN-LINE SEARCH FORM BAR EQUIPPED WITH AUTCOMPLETE FIELDS */}
+      {/* TASK REQUIREMENT: FIRST-LETTER AUTOCOMPLETE POPUP DROPDOWN OPTION LIST SELECTORS */}
       <div className="w-full bg-slate-900 text-white py-5 px-12 shadow-md relative">
         <form onSubmit={handleInPageFlightSearch} className="max-w-6xl w-full mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           
@@ -373,9 +376,9 @@ export default function BookFlightPage() {
               placeholder="Type starting letter..." 
             />
             {showFromSuggestions && (
-              <div className="absolute left-0 top-12 w-full bg-white border rounded-lg shadow-2xl py-1 z-50 max-h-40 overflow-y-auto text-black font-bold">
+              <div className="absolute left-0 right-0 top-12 w-full bg-white border rounded-lg shadow-2xl py-1 z-50 max-h-40 overflow-y-auto text-black font-bold">
                 {filteredFromCitiesPool.map(city => (
-                  <div key={city} onMouseDown={() => setSearchFrom(city)} className="px-3 py-2 hover:bg-slate-100 cursor-pointer">{city}</div>
+                  <div key={city} onMouseDown={() => setSearchFrom(city)} className="px-3 py-2 text-xs hover:bg-slate-100 cursor-pointer">{city}</div>
                 ))}
               </div>
             )}
@@ -395,20 +398,19 @@ export default function BookFlightPage() {
             {showToSuggestions && (
               <div className="absolute left-0 top-12 w-full bg-white border rounded-lg shadow-2xl py-1 z-50 max-h-40 overflow-y-auto text-black font-bold">
                 {filteredToCitiesPool.map(city => (
-                  <div key={city} onMouseDown={() => setSearchTo(city)} className="px-3 py-2 hover:bg-slate-100 cursor-pointer">{city}</div>
+                  <div key={city} onMouseDown={() => setSearchTo(city)} className="px-3 py-2 text-xs hover:bg-slate-100 cursor-pointer">{city}</div>
                 ))}
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Departure Date</label>
+            <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Departure Calendar Date</label>
             <input type="date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} className="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white outline-none font-bold text-xs" />
           </div>
           <button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold p-2 rounded text-xs uppercase tracking-wider transition-all">Find Available Flights</button>
         </form>
 
-        {/* BOX-STYLE RESULTS CONTAINER */}
         {hasSearchedInPage && (
           <div className="max-w-6xl w-full mx-auto mt-4 pt-4 border-t border-slate-800 space-y-2 animate-in fade-in duration-200">
             <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wide mb-1">Operational Routes Found Inside Search Engine</h4>
@@ -432,7 +434,7 @@ export default function BookFlightPage() {
                       <p className="text-[10px] text-slate-500 font-mono mt-0.5">{item.timings}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-emerald-400 font-black text-xs">{formatPriceValue(item.price || 3500, item.from, item.to)}</p>
+                      <p className="text-emerald-400 font-black text-xs">{formatPriceValue(item.price || 3500, item.from, item.to, item.nation)}</p>
                       <span className="text-[9px] bg-slate-700 text-white px-1.5 py-0.2 rounded font-bold uppercase block mt-1">Select</span>
                     </div>
                   </div>
@@ -443,13 +445,16 @@ export default function BookFlightPage() {
         )}
       </div>
 
-      {/* CORE WORKSPACE */}
+      {/* CORE WRAPPER GRID */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
+        
+        {/* LEFT COLUMN: CORE CHECKOUT SEGMENTS & COMPLETE REVIEWS SYSTEM */}
         <div className="lg:col-span-2 space-y-6">
+          
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left">
             <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
               <div>
-                {/* TASK REQUIREMENT: GOLDEN STAR REVIEW COMPONENT SYMBOL ASSETS */}
+                {/* TASK REQUIREMENT: EXPLICIT GOLDEN STAR SYMBOL RATING ATTACHMENT */}
                 <h2 className="text-lg font-bold flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-900 capitalize">
                   <span>{flight ? `${flight.from} ➔ ${flight.to}` : "Paris ➔ Tokyo"}</span>
                   <div className="flex items-center text-sm tracking-tighter" style={{ color: "#FFD700" }}>
@@ -470,6 +475,7 @@ export default function BookFlightPage() {
               </div>
             </div>
 
+            {/* Airport Timelines */}
             <div className="grid grid-cols-3 text-center py-4 my-2 relative">
               <div className="text-left">
                 <p className="text-base font-bold text-gray-900">{flight?.timings ? flight.timings.split("➔")[0] : "03:41 PM"}</p>
@@ -492,7 +498,7 @@ export default function BookFlightPage() {
             </div>
           </div>
 
-          {/* PASSENGER PROFILE SPEC FORMS WITH INLINE CALENDAR POPUP SEAT CONFIGS */}
+          {/* PASSENGER INDEXING FIELDSET LISTS */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
               <h3 className="font-bold text-sm text-gray-900 uppercase tracking-wide">👨‍✈️ Passenger Profile Indexing</h3>
@@ -501,11 +507,11 @@ export default function BookFlightPage() {
 
             <div className="space-y-4">
               {passengers.map((passenger, index) => (
-                <div key={index} className={`p-4 border rounded-xl bg-slate-50/40 relative`}>
+                <div key={index} onClick={() => setActivePassengerIndex(index)} className={`p-4 border rounded-xl bg-slate-50/40 relative ${activePassengerIndex === index ? 'border-blue-500 bg-blue-50/10' : 'border-gray-200'}`}>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-black text-gray-900">Passenger #{index + 1}</span>
+                    <span className="text-xs font-black text-gray-900">Passenger #{index + 1} {activePassengerIndex === index && "(Modifying Form)"}</span>
                     {passengers.length > 1 && (
-                      <button type="button" onClick={() => handleRemovePassengerRow(index)} className="text-[10px] text-red-500 font-bold hover:underline">Remove</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleRemovePassengerRow(index); }} className="text-[10px] text-red-500 font-bold hover:underline">Remove</button>
                     )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
@@ -518,6 +524,7 @@ export default function BookFlightPage() {
                       <input type="number" min={1} value={passenger.age} onChange={(e) => handlePassengerFieldChange(index, "age", parseInt(e.target.value) || 25)} className="w-full border p-2 bg-white text-xs font-bold rounded-lg text-black outline-none" />
                     </div>
                     
+                    {/* TRIGGER POPUP SEAT CHOOSE BOX ASSET */}
                     <div className="relative">
                       <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Assigned Flight Seat</label>
                       <button
@@ -536,8 +543,8 @@ export default function BookFlightPage() {
                       {showSeatPickerIndex === index && (
                         <div className="absolute left-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl p-4 shadow-2xl z-40 text-left">
                           <div className="flex justify-between items-center border-b pb-2 mb-3">
-                            <span className="text-[10px] font-black uppercase text-gray-900">Select Seat Map (#{index + 1})</span>
-                            <button type="button" onClick={() => setShowSeatPickerIndex(null)} className="text-gray-400 text-xs">✕</button>
+                            <span className="text-[10px] font-black uppercase text-gray-900">Choose Row Preference (£{index + 1})</span>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setShowSeatPickerIndex(null); }} className="text-gray-400 text-xs hover:text-black">✕</button>
                           </div>
                           <div className="space-y-2">
                             <div className="grid grid-cols-6 gap-1 text-center font-bold text-[9px] text-slate-400 mb-1">
@@ -555,12 +562,13 @@ export default function BookFlightPage() {
                                       key={letter}
                                       type="button"
                                       disabled={isClaimedBySomeoneElse}
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         handlePassengerFieldChange(index, "seatNumber", currentSeatCode);
                                         setShowSeatPickerIndex(null);
                                       }}
-                                      className={`p-1.5 rounded font-mono text-[9px] font-black border text-center ${
-                                        isClaimedByMe ? 'bg-blue-600 text-white' : isClaimedBySomeoneElse ? 'bg-slate-100 text-slate-300' : 'bg-white hover:bg-blue-50'
+                                      className={`p-1.5 rounded font-mono text-[9px] font-black border text-center transition-all ${
+                                        isClaimedByMe ? 'bg-blue-600 text-white' : isClaimedBySomeoneElse ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white hover:bg-blue-50'
                                       }`}
                                     >
                                       {currentSeatCode}
@@ -577,6 +585,12 @@ export default function BookFlightPage() {
                 </div>
               ))}
             </div>
+            
+            {passengers.length >= 8 && (
+              <p className="text-[11px] text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-100">
+                ⚠️ Limitation Warning: Maximum allotment of 8 passenger records reached for this booking transaction group profile!
+              </p>
+            )}
           </div>
 
           {/* CANCELLATION AND DATE CHANGE POLICY DISPLAYS */}
@@ -587,7 +601,7 @@ export default function BookFlightPage() {
             </div>
             <div className="bg-slate-50 p-3 rounded-md flex items-center justify-between mb-4 text-xs">
               <span className="font-semibold flex items-center gap-1 uppercase">✈️ {flight ? `${flight.from.slice(0,3)}-${flight.to.slice(0,3)}` : "PAR-TOK"}</span>
-              <span className="font-bold text-gray-900">{formatPriceValue(calculatedBase, searchFrom, searchTo)}</span>
+              <span className="font-bold text-gray-900">{formatPriceValue(calculatedBase, searchFrom, searchTo, flight?.nation)}</span>
             </div>
             <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-orange-400 to-red-400 rounded-full relative my-6">
               <div className="absolute -bottom-5 left-0 text-[10px] text-slate-400">Now</div>
@@ -618,7 +632,7 @@ export default function BookFlightPage() {
             </div>
           </div>
 
-          {/* TASK REQUIREMENT: TASK 2 REVIEWS ENGINE MOUNT DATA GRID */}
+          {/* TASK REQUIREMENT: TASK 2 REVIEWS INTERACTION ENGINE GRIDS */}
           <div className="w-full bg-white border rounded-xl p-6 shadow-sm text-left space-y-5">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3">
               <div>
@@ -635,6 +649,7 @@ export default function BookFlightPage() {
               </div>
             </div>
 
+            {/* REVIEW FORM INPUT SUBMISSION CONTAINER */}
             <form onSubmit={handleAddNewReviewRecord} className="p-4 rounded-xl bg-slate-50 border space-y-3 shadow-inner">
               <p className="font-bold text-gray-900 uppercase text-[10px] tracking-wider">Leave your travel score review</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -648,7 +663,7 @@ export default function BookFlightPage() {
                 </div>
                 <div>
                   <label className="block text-[9px] uppercase font-bold text-slate-400 mb-0.5">Optional Image URL Link</label>
-                  <input type="text" placeholder="Paste link..." value={inputPhotoUrl} onChange={(e) => setInputPhotoUrl(e.target.value)} className="w-full border p-1 rounded bg-white font-medium outline-none text-black" />
+                  <input type="text" placeholder="Paste verification picture link..." value={inputPhotoUrl} onChange={(e) => setInputPhotoUrl(e.target.value)} className="w-full border p-1 rounded bg-white font-medium outline-none text-black" />
                 </div>
               </div>
               <div>
@@ -694,7 +709,7 @@ export default function BookFlightPage() {
 
                       {activeReplyBoxId === rev.id ? (
                         <div className="flex gap-1.5 pt-1">
-                          <input type="text" placeholder="Type reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="flex-1 border p-1 rounded font-medium text-black bg-white outline-none" />
+                          <input type="text" placeholder="Type reply text..." value={replyText} onChange={(e) => setReplyText(e.target.value)} className="flex-1 border p-1 rounded font-medium text-black bg-white outline-none" />
                           <button type="button" onClick={() => handlePostReplySubmission(rev.id)} className="bg-slate-800 text-white font-bold px-2 rounded uppercase text-[9px]">Post</button>
                         </div>
                       ) : (
@@ -709,41 +724,92 @@ export default function BookFlightPage() {
 
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN: FARE SUMMARY COLUMN */}
         <div className="space-y-6 text-left">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 sticky top-8">
             <h3 className="font-bold text-sm text-gray-900 border-b border-gray-100 pb-3 mb-4">📋 Fare Summary</h3>
             <div className="space-y-3 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400 font-medium">Base Fare ({passengers.length} Tickets)</span>
-                <span className="font-semibold text-gray-900">{formatPriceValue(calculatedBase, searchFrom, searchTo)}</span>
+                <span className="font-semibold text-gray-900">{formatPriceValue(calculatedBase, searchFrom, searchTo, flight?.nation)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400 font-medium">Taxes and Surcharges</span>
-                <span className="font-semibold text-gray-900">{formatPriceValue(taxes, searchFrom, searchTo)}</span>
+                <span className="font-semibold text-gray-900">{formatPriceValue(taxes, searchFrom, searchTo, flight?.nation)}</span>
               </div>
               <div className="flex justify-between text-emerald-600 font-medium">
                 <span>Discounts</span>
-                <span className="font-bold">- {formatPriceValue(discount, searchFrom, searchTo)}</span>
+                <span className="font-bold">- {formatPriceValue(discount, searchFrom, searchTo, flight?.nation)}</span>
               </div>
               <div className="border-t border-gray-100 pt-4 flex justify-between items-center text-sm font-black text-gray-900">
                 <span>Total Amount</span>
-                <span className="text-base text-gray-950 font-black">{formatPriceValue(totalAmount, searchFrom, searchTo)}</span>
+                <span className="text-base text-gray-950 font-black">{formatPriceValue(totalAmount, searchFrom, searchTo, flight?.nation)}</span>
               </div>
             </div>
 
             <button onClick={handleValidateCheckoutFlow} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded shadow mt-6 text-xs uppercase tracking-wider transition-all">Proceed to Payment</button>
           </div>
+
+          {/* FIXED: Restored the promotional code component grid row selections block layout */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <h4 className="font-bold text-xs text-gray-900 mb-3 uppercase tracking-wider">🎁 Promo Codes</h4>
+            <div className="space-y-3 text-left">
+              <div className="border border-dashed border-gray-200 p-3 rounded-md bg-slate-50/50">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="radio" name="promoGroup" defaultChecked className="mt-0.5" />
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">MMTSECURE</span>
+                    <span className="text-[11px] text-slate-400 mt-1 block leading-relaxed">Get an instant discount of ₹299 on your flight booking and Trip Secure with this coupon!</span>
+                  </div>
+                </label>
+              </div>
+              <div className="border border-dashed border-gray-200 p-3 rounded-md bg-slate-50/50">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="radio" name="promoGroup" className="mt-0.5" />
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">SPECIALUPI</span>
+                    <span className="text-[11px] text-slate-400 mt-1 block leading-relaxed">Use this code and get ₹362 instant discount on payments via UPI only!</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
+
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-[#0b122c] text-slate-400 text-xs py-12 px-12 mt-auto border-t">
-        <div className="max-w-7xl w-full mx-auto flex justify-between items-center text-slate-500 text-[11px]">
+       {/* FOOTER BLOCK ATTACHED */}
+      <footer className="bg-slate-950 text-slate-400 text-xs py-12 px-12 border-t border-slate-900 mt-auto">
+        <div className="max-w-6xl w-full mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-left mb-8 border-b border-slate-900 pb-8">
+          <div className="space-y-3">
+            <h5 className="text-white font-bold text-sm">Why MakeMyTour?</h5>
+            <p className="text-slate-500 text-[11px] leading-relaxed">Established in 2000, MakeMyTour has since positioned itself as one of the leading companies, providing great offers, competitive airfares, exclusive discounts, and a seamless online booking experience.</p>
+          </div>
+          <div className="space-y-3">
+            <h5 className="text-white font-bold text-sm">Booking Flights with MakeMyTour</h5>
+            <p className="text-slate-500 text-[11px] leading-relaxed">Book your flight tickets with India's leading flight booking company. Get best deals on flights, train tickets, buses, hotels and holiday packages.</p>
+          </div>
+          <div className="space-y-3">
+            <h5 className="text-white font-bold text-sm">Domestic Flights with MakeMyTour</h5>
+            <p className="text-slate-500 text-[11px] leading-relaxed">MakeMyTour is India's leading player for flight bookings. With the cheapest fare guarantee, experience great value at the lowest price.</p>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <h6 className="text-white font-bold text-[11px] uppercase tracking-wider">About The Site</h6>
+              <div className="text-slate-500 space-y-0.5 text-[11px]"><p className="hover:text-slate-300">About Us</p><p className="hover:text-slate-300">Investor Relations</p><p className="hover:text-slate-300">Careers</p></div>
+            </div>
+            <div className="space-y-1.5">
+              <h6 className="text-white font-bold text-[11px] uppercase tracking-wider">Important Links</h6>
+              <div className="text-slate-500 space-y-0.5 text-[11px]"><p className="hover:text-slate-300">Privacy Policy</p><p className="hover:text-slate-300">Terms & Conditions</p><p className="hover:text-slate-300">User Agreement</p></div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-6xl w-full mx-auto border-t border-slate-900 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-600 text-[11px]">
           <p>© 2026 MakeMyTour PVT. LTD. All rights reserved</p>
-          <span className="font-bold text-slate-600 tracking-wider">NULCLASS EDITION</span>
+          <span className="font-semibold text-slate-800 tracking-wider">NULCLASS</span>
         </div>
       </footer>
+
     </div>
   );
 }
