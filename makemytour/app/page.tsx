@@ -34,7 +34,37 @@ export default function Home() {
   const fromCityRef = useRef<HTMLDivElement>(null);
   const toCityRef = useRef<HTMLDivElement>(null);
 
-  const cities = ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Goa", "Shimla", "Paris", "Tokyo","Davangere","Bali","New York","London","Dubai","Singapore","Sydney","Indonesia","France"];
+  const cities = ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Goa", "Shimla", "Paris", "Tokyo", "Davangere", "Bali", "New York", "London", "Dubai", "Singapore", "Sydney", "Indonesia", "France"];
+
+  // Automated sliding carousel facility records with premium feature markers
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const websiteFacilitiesSlides = [
+    {
+      url: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=80",
+      title: "✈️ Next-Gen Premium Flight Connections",
+      facilities: "In-Flight Wi-Fi Internet Access • Golden Star Score Indexes • Instant 70% Refund Statement Payouts"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1600&q=80",
+      title: "🏨 Luxury Handpicked Hotels & Resorts Stays",
+      facilities: "All-Inclusive Resort Credits • Multi-Currency Support Nodes • Automated Local Wallet Checkouts"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1600&q=80",
+      title: "🚌 Express Sleeper Inter-City Highway Coaches",
+      facilities: "Ergonomic Push-Back Beds • Dedicated Device Charging Slots • Real-Time GPS Journey Trackers"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1600&q=80",
+      title: "🚂 High-Speed Rail Networks Bullet Express",
+      facilities: "Gourmet Lounge Dining Options • Panoramic Vista-Dome Window Cabins • Priority Security Gates"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1600&q=80",
+      title: "🏠 Countryside Heritage Eco-Homestays & Heritage Villas",
+      facilities: "Authentic Cultural Cuisines • Remote Workspace High-Speed Desks • Guided Wilderness Trails"
+    }
+  ];
 
   const staysSections = [
     { title: "Stays in & Around Delhi", img: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=400&q=80" },
@@ -53,9 +83,16 @@ export default function Home() {
   // Set mounted true on client load to safely bypass server hydration mismatch blocks
   useEffect(() => {
     setMounted(true);
-  }, []);
 
-  // FIXED: No longer hardcodes user authentication states if localStorage is blank
+    // Automate carousel loops smoothly every 3000ms
+    const interval = setInterval(() => {
+      setCarouselIndex((prev) => (prev + 1) % websiteFacilitiesSlides.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [websiteFacilitiesSlides.length]);
+
+  // Sync auth view states
   useEffect(() => {
     const savedEmail = localStorage.getItem("email");
     if (savedEmail) {
@@ -67,8 +104,9 @@ export default function Home() {
     }
   }, [modalOpen]);
 
+  // Click outside listener handling window dropdown closures cleanly
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: any) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
@@ -83,7 +121,6 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // FIXED: Validates authentication status and queries backend dynamically for locations
   const handleSearchExecute = async () => {
     if (!isLoggedIn) {
       alert("Please login or sign up first to search and book travel routes!");
@@ -105,7 +142,6 @@ export default function Home() {
         if (!res.ok) throw new Error("Could not pull flight inventory records.");
         const flights = await res.json();
 
-        // Check if there is a match matching from and to criteria strings
         const matchedFlight = flights.find(
           (f: any) => 
             f.from?.toLowerCase() === fromCity.toLowerCase() && 
@@ -122,7 +158,6 @@ export default function Home() {
         if (!res.ok) throw new Error("Could not pull hotel inventory records.");
         const hotels = await res.json();
 
-        // Check if hotel location matches the requested toCity
         const matchedHotel = hotels.find(
           (h: any) => h.location?.toLowerCase() === toCity.toLowerCase()
         );
@@ -155,7 +190,15 @@ export default function Home() {
     window.location.reload();
   };
 
-  // Render shell placeholder during SSR execution phase
+  // First-letter string auto-filtering logic from cities pool array data indexes
+  const filteredFromCityDropdownPool = cities.filter(c => 
+    c.toLowerCase().startsWith(fromCity.toLowerCase().trim()) && c.toLowerCase() !== toCity.toLowerCase()
+  );
+
+  const filteredToCityDropdownPool = cities.filter(c => 
+    c.toLowerCase().startsWith(toCity.toLowerCase().trim()) && c.toLowerCase() !== fromCity.toLowerCase()
+  );
+
   if (!mounted) {
     return <div className="min-h-screen bg-slate-100" />;
   }
@@ -189,24 +232,15 @@ export default function Home() {
                 {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
               </button>
               
+              {/* Dropdown heading set to "My Account" overlay profile context view wrapper layout */}
               {dropdownOpen && (
-                <div className="absolute right-[-20px] top-[54px] w-64 bg-white rounded-xl shadow-2xl border border-gray-100 py-3 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-base font-extrabold text-slate-900">User Profile</p>
+                <div className="absolute right-[-20px] top-[45px] w-64 bg-white rounded-xl shadow-2xl border py-3 z-50 text-left">
+                  <div className="px-4 py-2 border-b">
+                    <p className="text-sm font-extrabold text-slate-900">My Account</p>
                     <p className="text-xs text-slate-400 font-medium truncate mt-0.5">{userEmail}</p>
                   </div>
-                  <button 
-                    onClick={() => { setDropdownOpen(false); router.push("/profile"); }} 
-                    className="w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 mt-1"
-                  >
-                    👤 Profile Dashboard
-                  </button>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100 mt-1 pt-2"
-                  >
-                    🚪 Log out
-                  </button>
+                  <button onClick={() => { setDropdownOpen(false); router.push("/profile"); }} className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 mt-1">👤 Profile Dashboard</button>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 border-t mt-1 pt-2">🚪 Log out Account</button>
                 </div>
               )}
             </>
@@ -238,80 +272,86 @@ export default function Home() {
               >
                 <span className="text-lg">🏨</span>Hotels
               </span>
-              <span className="flex flex-col items-center gap-1 opacity-50 cursor-not-allowed"><span className="text-lg">🏠</span>Homestays</span>
-              <span className="flex flex-col items-center gap-1 opacity-50 cursor-not-allowed"><span className="text-lg">🏖️</span>Holiday</span>
-              <span className="flex flex-col items-center gap-1 opacity-50 cursor-not-allowed"><span className="text-lg">🚂</span>Trains</span>
-              <span className="flex flex-col items-center gap-1 opacity-50 cursor-not-allowed"><span className="text-lg">🚌</span>Buses</span>
             </div>
           </nav>
 
-          {/* DYNAMIC ROW SEARCH ENGINE GRID LAYOUT */}
+          {/* DYNAMIC AUTOCOMPLETE INPUT MATRIX INTERFACES */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-white relative">
             
-            {/* FROM FIELD WITH DROPDOWN */}
-            <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50/50 cursor-pointer relative" ref={fromCityRef}>
-              <div onClick={() => { setShowFromDropdown(!showFromDropdown); setShowToDropdown(false); }}>
-                <span className="text-[11px] uppercase font-bold tracking-wider text-emerald-700 block mb-0.5">From</span>
-                <span className="text-base font-bold text-slate-900 block">{fromCity}</span>
-                <span className="text-xs text-slate-400 truncate block mt-0.5">Change departure city</span>
+            {/* FROM AUTOCOMPLETE INPUT LINK */}
+            <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50 relative" ref={fromCityRef}>
+              <div onClick={() => { setShowFromDropdown(true); setShowToDropdown(false); }}>
+                <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">From City Source</span>
+                <input 
+                  type="text" 
+                  value={fromCity} 
+                  onChange={(e) => setFromCity(e.target.value)}
+                  className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none p-0 focus:ring-0" 
+                />
+                <span className="text-xs text-slate-400 truncate block mt-1">Change departure city faster</span>
               </div>
               {showFromDropdown && (
-                <div className="absolute left-0 right-0 top-[72px] bg-white border border-slate-200 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
-                  {cities.filter(c => c !== toCity).map((city) => (
-                    <button key={city} onClick={() => { setFromCity(city); setShowFromDropdown(false); }} className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 font-bold block">{city}</button>
+                <div className="absolute left-0 right-0 top-16 bg-white border rounded-lg shadow-2xl z-50 max-h-40 overflow-y-auto font-bold">
+                  {filteredFromCityDropdownPool.map((city) => (
+                    <button key={city} onMouseDown={() => { setFromCity(city); setShowFromDropdown(false); }} className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 block">{city}</button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* TO FIELD WITH DROPDOWN */}
-            <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50/50 cursor-pointer relative" ref={toCityRef}>
-              <div onClick={() => { setShowToDropdown(!showToDropdown); setShowFromDropdown(false); }}>
-                <span className="text-[11px] uppercase font-bold tracking-wider text-emerald-700 block mb-0.5">To</span>
-                <span className="text-sm font-bold text-slate-900 block">{toCity || <span className="text-slate-300 font-normal italic">Where to? Select destination</span>}</span>
-                <span className="text-xs text-slate-400 truncate block mt-0.5">Select destination place</span>
+            {/* TO AUTOCOMPLETE INPUT LINK */}
+            <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50 relative" ref={toCityRef}>
+              <div onClick={() => { setShowToDropdown(true); setShowFromDropdown(false); }}>
+                <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">To Destination</span>
+                <input 
+                  type="text" 
+                  value={toCity} 
+                  placeholder="Where to? Select destination"
+                  onChange={(e) => setToCity(e.target.value)}
+                  className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none p-0 focus:ring-0 placeholder:italic placeholder:font-normal placeholder:text-slate-300" 
+                />
+                <span className="text-xs text-slate-400 truncate block mt-1">Select destination place faster</span>
               </div>
               {showToDropdown && (
-                <div className="absolute left-0 right-0 top-[72px] bg-white border border-slate-200 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
-                  {cities.filter(c => c !== fromCity).map((city) => (
-                    <button key={city} onClick={() => { setToCity(city); setShowToDropdown(false); }} className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 font-bold block">{city}</button>
+                <div className="absolute left-0 right-0 top-16 bg-white border rounded-lg shadow-2xl z-50 max-h-40 overflow-y-auto font-bold">
+                  {filteredToCityDropdownPool.map((city) => (
+                    <button key={city} onMouseDown={() => { setToCity(city); setShowToDropdown(false); }} className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-blue-50 block">{city}</button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* DATE INPUT */}
             <div className="md:col-span-2 border border-slate-200 rounded-xl p-3 text-left">
-              <span className="text-[11px] uppercase font-bold tracking-wider text-emerald-700 block mb-0.5">Date</span>
-              <input 
-                type="date" 
-                value={travelDate} 
-                onChange={(e) => setTravelDate(e.target.value)} 
-                className="text-sm font-bold text-slate-900 bg-transparent outline-none w-full mt-0.5 border-none cursor-pointer focus:ring-0" 
-              />
+              <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">Date</span>
+              <input type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} className="text-xs font-bold text-slate-900 bg-transparent outline-none w-full border-none p-0 focus:ring-0" />
             </div>
 
-            {/* TRAVELERS SELECTOR */}
             <div className="md:col-span-2 border border-slate-200 rounded-xl p-3 text-left">
-              <span className="text-[11px] uppercase font-bold tracking-wider text-emerald-700 block mb-0.5">Travelers</span>
-              <input 
-                type="number" 
-                min={1} 
-                max={10} 
-                value={travelers} 
-                onChange={(e) => setTravelers(Math.max(1, parseInt(e.target.value) || 1))} 
-                className="text-base font-bold text-slate-900 bg-transparent outline-none w-full mt-0.5 text-left border-none focus:ring-0" 
-              />
+              <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">Travelers Volume</span>
+              <input type="number" min={1} value={travelers} onChange={(e) => setTravelers(parseInt(e.target.value) || 1)} className="text-xs font-bold text-slate-900 bg-transparent outline-none w-full border-none p-0 focus:ring-0" />
             </div>
 
-            {/* SEARCH BUTTON IN BLACK */}
-            <button 
-              onClick={handleSearchExecute}
-              disabled={searchLoading}
-              className="md:col-span-2 rounded-xl flex items-center justify-center font-bold text-base uppercase tracking-wider shadow-md transition-all bg-black text-white hover:bg-slate-900 active:scale-95 disabled:bg-slate-400"
-            >
-              {searchLoading ? "Checking..." : "SEARCH"}
+            <button onClick={handleSearchExecute} disabled={searchLoading} className="md:col-span-2 rounded-xl bg-black hover:bg-slate-900 text-white font-bold uppercase tracking-wide text-xs">
+              {searchLoading ? "Verifying..." : "Search"}
             </button>
+          </div>
+        </div>
+
+        {/* EDGE-TO-END SCREEN SLIDING CAROUSEL BOX OUTLINED WITH SLENDER WHITE BORDER EDGE FRACTION STRIPS */}
+        <div className="w-full bg-white p-1.5 rounded-2xl shadow-md border border-gray-200/80">
+          <div className="w-full h-80 rounded-xl overflow-hidden relative group">
+            <img src={websiteFacilitiesSlides[carouselIndex].url} alt="Slider" className="w-full h-full object-cover filter brightness-[0.35] transition-all duration-700 ease-in-out" />
+            <div className="absolute inset-0 flex flex-col justify-center px-12 text-white max-w-xl space-y-2 text-left">
+              <span className="bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full w-fit">MakeMyTour Facilities Hub</span>
+              <h2 className="text-xl md:text-2xl font-black tracking-tight leading-tight">{websiteFacilitiesSlides[carouselIndex].title}</h2>
+              <p className="text-[11px] text-slate-300 font-medium leading-relaxed">{websiteFacilitiesSlides[carouselIndex].facilities}</p>
+            </div>
+            
+            <div className="absolute bottom-3 right-4 flex gap-1">
+              {websiteFacilitiesSlides.map((_, i) => (
+                <span key={i} onClick={() => setCarouselIndex(i)} className={`h-1.5 rounded-full cursor-pointer transition-all duration-300 ${carouselIndex === i ? 'w-4 bg-blue-500' : 'w-1.5 bg-white/50'}`} />
+              ))}
+            </div>
           </div>
         </div>
 
