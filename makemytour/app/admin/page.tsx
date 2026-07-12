@@ -29,6 +29,8 @@ interface FlightData {
   arrivalTime?: string;
   price?: number;
   availableSeats: number;
+  daysOfRun?: string; // Added field
+  nation?: string;    // Added field
 }
 
 interface HotelData {
@@ -38,6 +40,7 @@ interface HotelData {
   pricePerNight?: number;
   availableRooms: number;
   amenities?: string;
+  nation?: string;    // Added field for alignment
 }
 
 export default function AdminDashboard() {
@@ -63,7 +66,9 @@ export default function AdminDashboard() {
     departureTime: "",
     arrivalTime: "",
     price: "",
-    availableSeats: ""
+    availableSeats: "",
+    daysOfRun: "", // Added
+    nation: "India" // Added default value
   });
 
   // Hotels Tab States
@@ -73,7 +78,8 @@ export default function AdminDashboard() {
     location: "",
     pricePerNight: "",
     availableRooms: "",
-    amenities: ""
+    amenities: "",
+    nation: "India" // Added
   });
 
   useEffect(() => {
@@ -91,10 +97,10 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setFlightsList([
-        { id: "fl_101", name: "SkyHigh 202", from: "Paris", to: "Tokyo", price: 3500, availableSeats: 45 },
-        { id: "fl_102", name: "AirOne 101", from: "New York", to: "London", price: 5000, availableSeats: 12 },
-        { id: "fl_103", name: "AirIndia 33", from: "Bangalore", to: "Delhi", price: 4200, availableSeats: 8 },
-        { id: "fl_104", name: "Indigo 619", from: "Mumbai", to: "Bangalore", price: 3100, availableSeats: 34 }
+        { id: "fl_101", name: "SkyHigh 202", from: "Paris", to: "Tokyo", price: 3500, availableSeats: 45, daysOfRun: "Mon, Wed, Fri", nation: "International" },
+        { id: "fl_102", name: "AirOne 101", from: "New York", to: "London", price: 5000, availableSeats: 12, daysOfRun: "Daily", nation: "International" },
+        { id: "fl_103", name: "AirIndia 33", from: "Bangalore", to: "Delhi", price: 4200, availableSeats: 8, daysOfRun: "Tue, Thu", nation: "India" },
+        { id: "fl_104", name: "Indigo 619", from: "Mumbai", to: "Bangalore", price: 3100, availableSeats: 34, daysOfRun: "Daily", nation: "India" }
       ]);
     }
   };
@@ -109,24 +115,25 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setHotelsList([
-        { id: "ht_201", name: "Luxury Palace", location: "Paris, France", pricePerNight: 3000, availableRooms: 20 },
-        { id: "ht_202", name: "Seaside Resort", location: "Bali, Indonesia", pricePerNight: 6000, availableRooms: 20 }
+        { id: "ht_201", name: "Luxury Palace", location: "Paris, France", pricePerNight: 3000, availableRooms: 20, nation: "International" },
+        { id: "ht_202", name: "Seaside Resort", location: "Bali, Indonesia", pricePerNight: 6000, availableRooms: 20, nation: "International" }
       ]);
     }
   };
 
-  // CORRECTED: Logic to handle ₹ for India and $ for others
-  const formatCurrency = (price: number | undefined, location: string = "") => {
+  // CORRECTED: Logic handles ₹ for India nation entries and $ symbols for external ones
+  const formatCurrency = (price: number | undefined, nation: string = "", fallbackLocation: string = "") => {
     const val = price || 0;
-    return location.toLowerCase().includes("india,Bangalore,Delhi,Davangere,Shivamogga") ? `₹${val}` : `$${val}`;
+    const checkNation = (nation || fallbackLocation || "").toLowerCase();
+    return checkNation.includes("india") || checkNation.includes("bangalore") || checkNation.includes("delhi") || checkNation.includes("davangere") ? `₹${val.toLocaleString()}` : `$${val.toLocaleString()}`;
   };
-  // FLIGHT EDIT/ADD ACTIONS
+
   const getCurrencySymbol = (item: any) => {
-  const price = item.price || item.pricePerNight || 0;
-  // Check if location or origin contains "india" (case-insensitive)
-  const loc = (item.location || item.from || "").toLowerCase();
-  return loc.includes("india") ? `₹${price}` : `$${price}`;
-};
+    const price = item.price || item.pricePerNight || 0;
+    const checkNation = (item.nation || item.location || item.from || "").toLowerCase();
+    return checkNation.includes("india") ? `₹${price.toLocaleString()}` : `$${price.toLocaleString()}`;
+  };
+
   const startEditingFlight = (flight: FlightData) => {
     setEditingFlightId(flight.id || null);
     setFlightForm({
@@ -136,7 +143,9 @@ export default function AdminDashboard() {
       departureTime: flight.departureTime || "",
       arrivalTime: flight.arrivalTime || "",
       price: flight.price !== undefined ? String(flight.price) : "",
-      availableSeats: String(flight.availableSeats)
+      availableSeats: String(flight.availableSeats),
+      daysOfRun: flight.daysOfRun || "",
+      nation: flight.nation || "India"
     });
   };
 
@@ -149,7 +158,9 @@ export default function AdminDashboard() {
       departureTime: flightForm.departureTime,
       arrivalTime: flightForm.arrivalTime,
       price: Number(flightForm.price) || 0,
-      availableSeats: Number(flightForm.availableSeats) || 0
+      availableSeats: Number(flightForm.availableSeats) || 0,
+      daysOfRun: flightForm.daysOfRun,
+      nation: flightForm.nation
     };
     
     if (editingFlightId) {
@@ -176,11 +187,10 @@ export default function AdminDashboard() {
       }
       setActionMessage("Flight configured successfully!");
     }
-    setFlightForm({ name: "", from: "", to: "", departureTime: "", arrivalTime: "", price: "", availableSeats: "" });
+    setFlightForm({ name: "", from: "", to: "", departureTime: "", arrivalTime: "", price: "", availableSeats: "", daysOfRun: "", nation: "India" });
     fetchFlights();
   };
 
-  // HOTEL EDIT/ADD ACTIONS
   const startEditingHotel = (hotel: HotelData) => {
     setEditingHotelId(hotel.id || null);
     setHotelForm({
@@ -188,7 +198,8 @@ export default function AdminDashboard() {
       location: hotel.location,
       pricePerNight: hotel.pricePerNight !== undefined ? String(hotel.pricePerNight) : "",
       availableRooms: String(hotel.availableRooms),
-      amenities: hotel.amenities || ""
+      amenities: hotel.amenities || "" ,
+      nation: hotel.nation || "India"
     });
   };
 
@@ -199,7 +210,8 @@ export default function AdminDashboard() {
       location: hotelForm.location,
       pricePerNight: Number(hotelForm.pricePerNight) || 0,
       availableRooms: Number(hotelForm.availableRooms) || 0,
-      amenities: hotelForm.amenities
+      amenities: hotelForm.amenities,
+      nation: hotelForm.nation
     };
 
     if (editingHotelId) {
@@ -216,7 +228,7 @@ export default function AdminDashboard() {
       setEditingHotelId(null);
     } else {
       try {
-        await fetch("http://localhost:8080/admin/hotels", {
+        await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/hotels", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -226,7 +238,7 @@ export default function AdminDashboard() {
       }
       setActionMessage("Hotel configured successfully!");
     }
-    setHotelForm({ name: "", location: "", pricePerNight: "", availableRooms: "", amenities: "" });
+    setHotelForm({ name: "", location: "", pricePerNight: "", availableRooms: "", amenities: "", nation: "India" });
     fetchHotels();
   };
 
@@ -238,7 +250,7 @@ export default function AdminDashboard() {
     setFoundUser(null);
 
     try {
-      const res = await fetch(`http://localhost:8080/user/${encodeURIComponent(searchEmail.trim())}`);
+      const res = await fetch(`https://make-my-trip-clone-qaq2.onrender.com/user/${encodeURIComponent(searchEmail.trim())}`);
       if (!res.ok) throw new Error("User document not found.");
       setFoundUser(await res.json());
     } catch (err: any) {
@@ -326,18 +338,25 @@ export default function AdminDashboard() {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="text-gray-400 border-b border-gray-200">
-                          <th className="pb-3 font-normal w-1/4">Flight Name</th>
-                          <th className="pb-3 font-normal w-1/4">From</th>
-                          <th className="pb-3 font-normal w-1/4">To</th>
-                          <th className="pb-3 font-normal w-1/4">Action</th>
+                          <th className="pb-3 font-normal w-1/5">Flight Name</th>
+                          <th className="pb-3 font-normal w-1/5">From</th>
+                          <th className="pb-3 font-normal w-1/5">To</th>
+                          <th className="pb-3 font-normal w-1/5">Price</th>
+                          <th className="pb-3 font-normal w-1/5">Action</th>
                         </tr>
                       </thead>
                       <tbody className="text-gray-700 divide-y divide-gray-100 font-medium">
                         {flightsList.map((flight, idx) => (
                           <tr key={idx}>
-                            <td className="py-4 text-gray-900 font-bold">{flight.name}</td>
+                            <td className="py-4 text-gray-900 font-bold">
+                              {flight.name}
+                              {flight.daysOfRun && (
+                                <span className="block text-[10px] text-gray-400 font-normal mt-0.5">Runs: {flight.daysOfRun}</span>
+                              )}
+                            </td>
                             <td className="py-4 text-gray-500">{flight.from}</td>
                             <td className="py-4 text-gray-500">{flight.to}</td>
+                            <td className="py-4 text-gray-900 font-semibold">{getCurrencySymbol(flight)}</td>
                             <td className="py-4">
                               <button 
                                 type="button"
@@ -360,13 +379,28 @@ export default function AdminDashboard() {
                         <label className="block mb-1 font-normal text-gray-700">Flight Name</label>
                         <input type="text" required value={flightForm.name} onChange={(e) => setFlightForm({...flightForm, name: e.target.value})} placeholder="SkyHigh 202" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
                       </div>
-                      <div>
-                        <label className="block mb-1 font-normal text-gray-700">From</label>
-                        <input type="text" required value={flightForm.from} onChange={(e) => setFlightForm({...flightForm, from: e.target.value})} placeholder="Departure Location" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block mb-1 font-normal text-gray-700">From</label>
+                          <input type="text" required value={flightForm.from} onChange={(e) => setFlightForm({...flightForm, from: e.target.value})} placeholder="Departure Location" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
+                        </div>
+                        <div>
+                          <label className="block mb-1 font-normal text-gray-700">To</label>
+                          <input type="text" required value={flightForm.to} onChange={(e) => setFlightForm({...flightForm, to: e.target.value})} placeholder="Destination Target" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block mb-1 font-normal text-gray-700">To</label>
-                        <input type="text" required value={flightForm.to} onChange={(e) => setFlightForm({...flightForm, to: e.target.value})} placeholder="Destination Target" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block mb-1 font-normal text-gray-700">Flight Nation</label>
+                          <select value={flightForm.nation} onChange={(e) => setFlightForm({...flightForm, nation: e.target.value})} className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white font-normal">
+                            <option value="India">India (Rupees - ₹)</option>
+                            <option value="International">International (Dollars - $)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block mb-1 font-normal text-gray-700">Days of Run</label>
+                          <input type="text" value={flightForm.daysOfRun} onChange={(e) => setFlightForm({...flightForm, daysOfRun: e.target.value})} placeholder="Daily, Mon-Fri, Tue, etc." className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white placeholder:font-normal" />
+                        </div>
                       </div>
                       <div>
                         <label className="block mb-1 font-normal text-gray-700">Departure Time</label>
@@ -376,21 +410,22 @@ export default function AdminDashboard() {
                         <label className="block mb-1 font-normal text-gray-700">Arrival Time</label>
                         <input type="datetime-local" value={flightForm.arrivalTime} onChange={(e) => setFlightForm({...flightForm, arrivalTime: e.target.value})} className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 font-normal cursor-pointer outline-none bg-white" />
                       </div>
-                      <div>
-                        <label className="block mb-1 font-normal text-gray-700">Price</label>
-                        {/* Explicit state mapping key target */}
-                        <input type="number" required value={flightForm.price} onChange={(e) => setFlightForm({...flightForm, price: e.target.value})} placeholder="0" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
-                      </div>
-                      <div>
-                        <label className="block mb-1 font-normal text-gray-700">Available Seats</label>
-                        <input type="number" required value={flightForm.availableSeats} onChange={(e) => setFlightForm({...flightForm, availableSeats: e.target.value})} placeholder="0" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block mb-1 font-normal text-gray-700">Price</label>
+                          <input type="number" required value={flightForm.price} onChange={(e) => setFlightForm({...flightForm, price: e.target.value})} placeholder="0" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
+                        </div>
+                        <div>
+                          <label className="block mb-1 font-normal text-gray-700">Available Seats</label>
+                          <input type="number" required value={flightForm.availableSeats} onChange={(e) => setFlightForm({...flightForm, availableSeats: e.target.value})} placeholder="0" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
+                        </div>
                       </div>
                     </div>
                     <button type="submit" className="bg-black text-white font-bold px-4 py-2 rounded text-[11px] uppercase tracking-wider mt-1 shadow-md hover:bg-slate-900 transition-colors">
                       {editingFlightId ? "UPDATE FLIGHT" : "ADD FLIGHT"}
                     </button>
                     {editingFlightId && (
-                      <button type="button" onClick={() => { setEditingFlightId(null); setFlightForm({ name: "", from: "", to: "", departureTime: "", arrivalTime: "", price: "", availableSeats: "" }); }} className="text-xs font-bold text-gray-400 hover:underline ml-4">Cancel Edit</button>
+                      <button type="button" onClick={() => { setEditingFlightId(null); setFlightForm({ name: "", from: "", to: "", departureTime: "", arrivalTime: "", price: "", availableSeats: "", daysOfRun: "", nation: "India" }); }} className="text-xs font-bold text-gray-400 hover:underline ml-4">Cancel Edit</button>
                     )}
                   </form>
                 </div>
@@ -422,7 +457,7 @@ export default function AdminDashboard() {
                           <tr key={idx}>
                             <td className="py-4 text-gray-900 font-bold">{hotel.name}</td>
                             <td className="py-4 text-gray-500">{hotel.location}</td>
-                            <td className="py-4 text-gray-500">{formatCurrency(hotel.pricePerNight, hotel.location)}</td>
+                            <td className="py-4 text-gray-500">{formatCurrency(hotel.pricePerNight, hotel.nation, hotel.location)}</td>
                             <td className="py-4">
                               <button 
                                 type="button"
@@ -433,7 +468,6 @@ export default function AdminDashboard() {
                               </button>
                             </td>
                           </tr>
-                          
                         ))}
                       </tbody>
                     </table>
@@ -444,8 +478,13 @@ export default function AdminDashboard() {
                     <div className="space-y-2 text-xs font-bold text-gray-500">
                       <div><label className="block mb-1 font-normal text-gray-700">Hotel Name</label><input type="text" required value={hotelForm.name} onChange={(e) => setHotelForm({...hotelForm, name: e.target.value})} placeholder="Luxury Palace" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" /></div>
                       <div><label className="block mb-1 font-normal text-gray-700">Location</label><input type="text" required value={hotelForm.location} onChange={(e) => setHotelForm({...hotelForm, location: e.target.value})} placeholder="Location" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" /></div>
-                      
-                      {/* Explicitly target field mapping names to prevent reset bugs */}
+                      <div>
+                        <label className="block mb-1 font-normal text-gray-700">Hotel Nation</label>
+                        <select value={hotelForm.nation} onChange={(e) => setHotelForm({...hotelForm, nation: e.target.value})} className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white font-normal">
+                          <option value="India">India (Rupees - ₹)</option>
+                          <option value="International">International (Dollars - $)</option>
+                        </select>
+                      </div>
                       <div>
                         <label className="block mb-1 font-normal text-gray-700">Price Per Night</label>
                         <input type="number" required value={hotelForm.pricePerNight} onChange={(e) => setHotelForm({...hotelForm, pricePerNight: e.target.value})} placeholder="0" className="w-full border border-gray-200 rounded p-2 text-sm text-gray-900 outline-none bg-white" />
@@ -457,7 +496,7 @@ export default function AdminDashboard() {
                       {editingHotelId ? "UPDATE HOTEL" : "ADD HOTEL"}
                     </button>
                     {editingHotelId && (
-                      <button type="button" onClick={() => { setEditingHotelId(null); setHotelForm({ name: "", location: "", pricePerNight: "", availableRooms: "", amenities: "" }); }} className="text-xs font-bold text-gray-400 hover:underline ml-4">Cancel Edit</button>
+                      <button type="button" onClick={() => { setEditingHotelId(null); setHotelForm({ name: "", location: "", pricePerNight: "", availableRooms: "", amenities: "", nation: "India" }); }} className="text-xs font-bold text-gray-400 hover:underline ml-4">Cancel Edit</button>
                     )}
                   </form>
                 </div>
@@ -517,7 +556,6 @@ export default function AdminDashboard() {
               </div>
             )}
             
-
           </div>
         </main>
       </div>
