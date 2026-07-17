@@ -97,22 +97,20 @@ export default function ProfileDashboardPage() {
       router.push("/");
       return;
     }
-
-    fetch(`${BASE_URL}/user/${encodeURIComponent(savedEmail.trim())}`)
+   fetch(`${BASE_URL}/user/${encodeURIComponent(savedEmail.trim())}`)
       .then((res) => {
-  if (!res.ok) {
-    console.error("Server responded with error:", res.status);
-    return null; // Don't crash, just return null if it fails
-  }
-  return res.json();
-})
-.then((data) => {
-  if (data) {
-    setUserData(data);
-  }
-})
+        if (!res.ok) throw new Error("Server error");
+        return res.json();
+      })
+      .then((data) => {
+        setUserData(data);
+        setLoading(false);
+      })
       .catch((err) => {
-        console.error("Using fallback visualization profiles:", err);
+        console.warn("API Unavailable, using mock data");
+        // ... (keep your existing mock data block here)
+        setLoading(false);
+    console.error("Fetch failed:", err);
         setUserData({
           _id: "mock_user_123",
           firstName: "Shankara",
