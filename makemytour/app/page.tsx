@@ -201,8 +201,8 @@ export default function Home() {
               </button>
               
               {dropdownOpen && (
-                <div className="absolute right-0 top-[45px] w-64 bg-white rounded-xl shadow-2xl border py-3 z-50 text-left">
-                  <div className="px-4 py-2 border-b">
+                <div className="absolute right--0 top-[50px] w-64 bg-white rounded-xl shadow-2xl border py-0 z-50 text-left">
+                  <div className="px-2 py-1 border-b">
                     <p className="text-sm font-extrabold text-slate-900">My Account</p>
                     <p className="text-xs text-slate-400 font-medium truncate mt-0.5">{userEmail}</p>
                   </div>
