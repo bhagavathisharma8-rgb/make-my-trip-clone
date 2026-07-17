@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Recommendations from "../../../components/Recommendations";
 
 interface FlightDetails {
   _id: string;
@@ -109,13 +110,29 @@ export default function BookFlightPage() {
     }
     return `$ ${(amount / 85).toFixed(2)}`;
   };
-
+  // Add this helper function below your formatPriceValue function
+// Replace your existing getSeatPrice function with this one
+const getSeatMetadata = (seatCode: string) => {
+  const row = parseInt(seatCode);
+  const isPremium = row <= 2;
+  return { isPremium, extraPrice: isPremium ? 500 : 0 };
+};
   const basePricePerTicket = flight 
     ? (Number(flight.price) || Number(flight.fare) || Number(flight.ticketPrice) || 3500) 
     : 3500;
 
-  const calculatedBase = basePricePerTicket * passengers.length;
-  const totalAmount = calculatedBase + taxes + otherServices - discount;
+  // 1. Existing code
+const calculatedBase = basePricePerTicket * passengers.length;
+const totalSeatUpgrades = passengers.reduce((sum, p) => sum + (p.seatNumber ? getSeatMetadata(p.seatNumber).extraPrice : 0), 0);
+
+// 2. PASTE THIS NEW LOGIC HERE:
+const isHoliday = true; 
+const holidaySurcharge = isHoliday ? (calculatedBase * 0.2) : 0;
+
+// 3. UPDATE THIS LINE:
+const totalAmount = calculatedBase + taxes + otherServices - discount + totalSeatUpgrades + holidaySurcharge;
+  
+  // Add this calculation to update the total dynamically
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("email");
@@ -296,8 +313,9 @@ export default function BookFlightPage() {
 
     setShowPaymentModal(true);
   };
+  // REPLACE YOUR EXISTING totalAmount LINE WITH THIS:
 
-  const handlePaymentSubmit = async () => {
+  async function handlePaymentSubmit() {
     const targetUserId = userId || localStorage.getItem("email") || "guest_user";
     setLoadingPayment(true);
 
@@ -310,25 +328,25 @@ export default function BookFlightPage() {
           flightId: activeFlightId,
           seats: passengers.length,
           price: totalAmount,
-          passengerName: passengers[0].name, 
+          passengerName: passengers[0].name,
           passengerAge: passengers[0].age,
           seatPreference: passengers[0].seatNumber.endsWith("A") || passengers[0].seatNumber.endsWith("F") ? "Window" : "Aisle",
           travelDate: searchDate,
           seatNumber: passengers[0].seatNumber,
-          roster: passengers 
+          roster: passengers
         }),
       });
 
       if (!response.ok) throw new Error("Backend transaction rejected.");
       alert("Payment Successful! Your flight booking is confirmed.");
       setShowPaymentModal(false);
-      router.push("/profile"); 
+      router.push("/profile");
     } catch (err: any) {
       alert(`Booking Failed: ${err.message}`);
     } finally {
       setLoadingPayment(false);
     }
-  };
+  }
 
   const seatRows = [1, 2, 3, 4, 5, 6];
   const seatLetters = ["A", "B", "C", "D", "E", "F"];
@@ -342,6 +360,7 @@ export default function BookFlightPage() {
     if (reviewSortBy === "helpful") return b.helpfulCount - a.helpfulCount;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
+  // ADD THIS LOGIC BLOCK
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-gray-800 text-xs text-left">
@@ -418,9 +437,9 @@ export default function BookFlightPage() {
               <p className="text-slate-500 text-xs py-2 font-medium">No operational flights matching this target city path array found.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {filteredSearchResults.map((item) => (
+                {filteredSearchResults.map((item, index) => (
                   <div 
-                    key={item._id} 
+                    key={item._id || item.id || index}
                     onClick={() => {
                       setActiveFlightId(item._id || String(item.id));
                       setHasSearchedInPage(false);
@@ -547,37 +566,43 @@ export default function BookFlightPage() {
                             <button type="button" onClick={(e) => { e.stopPropagation(); setShowSeatPickerIndex(null); }} className="text-gray-400 text-xs hover:text-black">✕</button>
                           </div>
                           <div className="space-y-2">
-                            <div className="grid grid-cols-6 gap-1 text-center font-bold text-[9px] text-slate-400 mb-1">
-                              {seatLetters.map((l) => <span key={l}>{l}</span>)}
-                            </div>
-                            {seatRows.map((row) => (
-                              <div key={row} className="grid grid-cols-6 gap-1">
-                                {seatLetters.map((letter) => {
-                                  const currentSeatCode = `${row}${letter}`;
-                                  const isClaimedBySomeoneElse = passengers.some((p, idx) => idx !== index && p.seatNumber === currentSeatCode);
-                                  const isClaimedByMe = passenger.seatNumber === currentSeatCode;
+  <div className="grid grid-cols-6 gap-1 text-center font-bold text-[9px] text-slate-400 mb-1">
+    {seatLetters.map((l) => <span key={l}>{l}</span>)}
+  </div>
+  {seatRows.map((row) => (
+    <div key={row} className="grid grid-cols-6 gap-1">
+      {seatLetters.map((letter) => {
+        // --- DEFINING VARIABLES INSIDE THE LOOP (Prevents errors) ---
+        const code = `${row}${letter}`;
+        const isClaimedBySomeoneElse = passengers.some((p, idx) => idx !== index && p.seatNumber === code);
+        const { isPremium } = getSeatMetadata(code);
+        const isSelected = passenger.seatNumber === code;
 
-                                  return (
-                                    <button
-                                      key={letter}
-                                      type="button"
-                                      disabled={isClaimedBySomeoneElse}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handlePassengerFieldChange(index, "seatNumber", currentSeatCode);
-                                        setShowSeatPickerIndex(null);
-                                      }}
-                                      className={`p-1.5 rounded font-mono text-[9px] font-black border text-center transition-all ${
-                                        isClaimedByMe ? 'bg-blue-600 text-white' : isClaimedBySomeoneElse ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white hover:bg-blue-50'
-                                      }`}
-                                    >
-                                      {currentSeatCode}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            ))}
-                          </div>
+        // --- BUTTON ---
+        return (
+          <button
+            key={code}
+            type="button"
+            disabled={isClaimedBySomeoneElse}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePassengerFieldChange(index, "seatNumber", code);
+              setShowSeatPickerIndex(null);
+            }}
+            className={`p-1.5 rounded font-mono text-[9px] font-black border text-center transition-all ${
+              isSelected ? 'bg-blue-600 text-white' : 
+              isClaimedBySomeoneElse ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 
+              isPremium ? 'bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200' : 'bg-white hover:bg-blue-50'
+            }`}
+          >
+            {code}
+            {isPremium && <span className="block text-[7px] font-normal italic">+500</span>}
+          </button>
+        );
+      })}
+    </div>
+  ))}
+</div>
                         </div>
                       )}
                     </div>
@@ -648,7 +673,7 @@ export default function BookFlightPage() {
                 </select>
               </div>
             </div>
-
+<Recommendations />
             {/* REVIEW FORM INPUT SUBMISSION CONTAINER */}
             <form onSubmit={handleAddNewReviewRecord} className="p-4 rounded-xl bg-slate-50 border space-y-3 shadow-inner">
               <p className="font-bold text-gray-900 uppercase text-[10px] tracking-wider">Leave your travel score review</p>

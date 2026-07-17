@@ -120,15 +120,14 @@ export default function LiveFlightStatus() {
     let updated: string[];
     if (trackedFlights.includes(id)) {
       updated = trackedFlights.filter((fid) => fid !== id);
-      triggerNotification("📌 Removed flight track watch records successfully.");
     } else {
       updated = [...trackedFlights, id];
-      triggerNotification("📌 Pinned flight to real-time status active dashboard!");
     }
     setTrackedFlights(updated);
-    localStorage.setItem("pinnedFlights", JSON.stringify(updated));
-  };
-
+    
+    // MUST BE THIS KEY: "pinnedFlights"
+    localStorage.setItem("pinnedFlights", JSON.stringify(updated)); 
+};
   const filteredFlights = flights.filter(
     (f) =>
       f.flightNumber.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||

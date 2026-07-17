@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link"; // FIXED: Correct import for navigation
 import { User, Mail, Phone, LogOut, Edit3, Plane, Building, XCircle, Download, Share2, Wallet, Lock, Satellite } from "lucide-react";
 
 interface BookingItem {
@@ -21,7 +22,7 @@ interface BookingItem {
   seatPreference?: string;
   travelDate?: string;
   seatNumber?: string;
-  currency?: "INR" | "USD"; // Added to handle currency selection
+  currency?: "INR" | "USD"; 
 }
 
 interface UserProfileData {
@@ -49,11 +50,11 @@ export default function ProfileDashboardPage() {
   // ADDED: State for Tracked Flights
   const [trackedFlights, setTrackedFlights] = useState<string[]>([]);
 
-  // TAB HANDLING CAPABILITY: Tracks side navigation menu vs main content rendering view scopes
+  // TAB HANDLING CAPABILITY
   const [activeAccountTab, setActiveAccountTab] = useState<"profile" | "ewallet" | "password">("profile");
   const [activeBookingFilter, setActiveBookingFilter] = useState<"all" | "cancelled" | "refunds">("all");
   
-  // FIXED: Flag variable to isolate profile component completely from the booking array summaries
+  // FIXED: Flag variable to isolate profile component
   const [showBookingsView, setShowBookingsView] = useState(false);
   const [showNavbarDropdown, setShowNavbarDropdown] = useState(false);
 
@@ -99,13 +100,17 @@ export default function ProfileDashboardPage() {
 
     fetch(`${BASE_URL}/user/${encodeURIComponent(savedEmail.trim())}`)
       .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error("Failed to pull profile tracking data.");
-      })
-      .then((data) => {
-        setUserData(data);
-        setLoading(false);
-      })
+  if (!res.ok) {
+    console.error("Server responded with error:", res.status);
+    return null; // Don't crash, just return null if it fails
+  }
+  return res.json();
+})
+.then((data) => {
+  if (data) {
+    setUserData(data);
+  }
+})
       .catch((err) => {
         console.error("Using fallback visualization profiles:", err);
         setUserData({
@@ -350,15 +355,12 @@ export default function ProfileDashboardPage() {
         </div>
       </div>
 
-      {/* CORE GRID AREA */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-8 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT COLUMN METADATA CARD: "MY ACCOUNT" SELECTION PROFILE CONTROLLER */}
         <div className="md:col-span-4 space-y-4">
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4 text-left">
                 <div className="border-b pb-2">
                     <h3 className="text-base font-black text-gray-900">My Account</h3>
-                    <p className="text-[10px] font-mono font-bold text-slate-400 truncate mt-0.5">👤 {userData?.email || "shankara19@gmail.com"}</p>
                 </div>
 
                 <div className="space-y-1 flex flex-col">
@@ -383,31 +385,33 @@ export default function ProfileDashboardPage() {
                 </div>
             </div>
 
-            {/* ADDED: Tracking Widget in Sidebar */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-4 text-left">
+            {/* TRACKED FLIGHTS WIDGET: Replaced list with a single clickable link */}
+            <Link 
+                href="/flight-status" 
+                className="block bg-white border border-gray-200 rounded-2xl shadow-sm p-6 text-left hover:border-blue-400 hover:shadow-md transition-all cursor-pointer"
+            >
                 <div className="flex items-center gap-2 border-b pb-2">
                     <Satellite className="w-4 h-4 text-blue-600" />
                     <h3 className="font-black text-sm text-gray-900">Tracked Flights</h3>
                 </div>
-                {trackedFlights.length > 0 ? (
-                    <div className="space-y-2">
-                        {trackedFlights.map((id) => (
-                            <div key={id} className="text-[11px] font-bold bg-slate-50 p-2 rounded flex justify-between items-center border border-slate-100">
-                                <span>ID: {id}</span>
-                                <span className="text-[10px] text-green-600 animate-pulse">● Live</span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-[10px] text-slate-400">No active flights tracked.</p>
-                )}
-            </div>
+                <div className="mt-3">
+                    {trackedFlights.length > 0 ? (
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                                {trackedFlights.length} Active
+                            </span>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                Click to view radar
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-[10px] text-slate-400 font-medium italic">No active flights tracked.</p>
+                    )}
+                </div>
+            </Link>
         </div>
 
-        {/* RIGHT COLUMN CENTRAL CONFIG DISPLAY ROUTER WINDOW */}
         <div className="md:col-span-8 bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6 text-left">
-          
-          {/* CONTENT PATHWAY A: DISPLAY STATIC LOGS (BOOKINGS EXCLUDED MATCHING REQS) */}
           {activeAccountTab === "profile" && !showBookingsView && (
             <div className="space-y-6 animate-in fade-in duration-100">
               <div className="border-b pb-2">
@@ -421,7 +425,6 @@ export default function ProfileDashboardPage() {
             </div>
           )}
 
-          {/* CONTENT PATHWAY B: BOOKINGS MATRIX HISTORY LIST (RENDERED SEPARATELY MATCHING REQS) */}
           {activeAccountTab === "profile" && showBookingsView && (
             <div className="space-y-4 animate-in fade-in duration-100">
               <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Filtered Booking Specifications Array</h4>
