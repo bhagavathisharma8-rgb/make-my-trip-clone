@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Recommendations from "../../../components/Recommendations";
 
 interface FlightDetails {
@@ -50,6 +50,7 @@ interface Review {
 export default function BookFlightPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   const [activeFlightId, setActiveFlightId] = useState<string>(String(id));
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -99,7 +100,7 @@ export default function BookFlightPage() {
     ? "http://localhost:8081"
     : "https://make-my-trip-clone-qaq2.onrender.com";
 
-  // TASK REQUIREMENT: Dynamic Currency Converter checking for Indian domestic vs International destinations ($ vs ₹)
+  // Dynamic Currency Converter checking for Indian domestic vs International destinations ($ vs ₹)
   const formatPriceValue = (amount: number, fromCityName: string, toCityName: string, nationField?: string) => {
     const domesticIndianCities = ["delhi", "mumbai", "bangalore", "kolkata", "goa", "shimla", "davangere"];
     
@@ -148,42 +149,77 @@ export default function BookFlightPage() {
       .catch(() => setUserId(savedEmail));
   }, [router, BASE_URL]);
 
-  // TASK REQUIREMENT: Isolated flight review and flight data parameters loop dynamically tied to activeFlightId
+  // Read URL search parameters passed dynamically from Home Page and match admin flight inventory with robust mapping
   useEffect(() => {
+    const qFrom = searchParams.get("from");
+    const qTo = searchParams.get("to");
+    const qDate = searchParams.get("date");
+    const qTravelers = searchParams.get("travelers");
+
+    const targetFrom = qFrom || "Paris";
+    const targetTo = qTo || "Tokyo";
+
+    setSearchFrom(targetFrom);
+    setSearchTo(targetTo);
+    if (qDate) setSearchDate(qDate);
+
+    if (qTravelers) {
+      const count = parseInt(qTravelers) || 1;
+      setPassengers(Array.from({ length: count }, () => ({ name: "", age: 25, seatNumber: "" })));
+    }
+
     setLoadingData(true);
     fetch(`${BASE_URL}/admin/flights`)
       .then((res) => res.ok ? res.json() : [])
       .then((flights: FlightDetails[]) => {
-        const enriched = flights.map((f, i) => ({
+        const enriched = flights.map((f: any, i: number) => ({
           ...f,
+          price: Number(f.price) || Number(f.fare) || Number(f.ticketPrice) || Number(f.cost) || Number(f.amount) || 3500,
+          timings: f.timings || (f.departureTime && f.arrivalTime ? `${f.departureTime} ➔ ${f.arrivalTime}` : "03:41 PM ➔ 06:41 PM"),
           imageUrl: f.imageUrl || [
             "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80",
             "https://images.unsplash.com/photo-1517999144091-3d9dca6d1e43?auto=format&fit=crop&w=600&q=80",
             "https://images.unsplash.com/photo-1483450388369-9ed95738483c?auto=format&fit=crop&w=600&q=80"
           ][i % 3],
-          timings: f.timings || "03:41 PM ➔ 06:41 PM",
           operatingDays: f.operatingDays || "Daily",
-          nation: f.nation || (["delhi", "mumbai", "bangalore"].includes(f.from.toLowerCase()) ? "India" : "International")
+          nation: f.nation || (["delhi", "mumbai", "bangalore"].includes((f.from || "").toLowerCase()) ? "India" : "International")
         }));
         
         setAllFlightsInventory(enriched);
-        const matched = enriched.find((f) => String(f._id) === String(activeFlightId) || String(f.id) === String(activeFlightId));
-        if (matched) {
-          setFlight(matched);
+
+        const matchingFlights = enriched.filter((f) => 
+          f.from.toLowerCase().trim() === targetFrom.toLowerCase().trim() && 
+          f.to.toLowerCase().trim() === targetTo.toLowerCase().trim()
+        );
+
+        if (matchingFlights.length > 0) {
+          const specificMatch = id !== "search" 
+            ? matchingFlights.find(f => String(f._id) === String(id) || String(f.id) === String(id)) 
+            : matchingFlights[0];
+
+          setFlight(specificMatch || matchingFlights[0]);
+          setActiveFlightId(specificMatch?._id || specificMatch?.id || String(id));
+          setFilteredSearchResults(matchingFlights);
+        } else {
+          setFlight(null);
+          setFilteredSearchResults([]);
+          alert(`Booking Not Available: No active flight found from ${targetFrom} to ${targetTo} in the admin inventory.`);
         }
         setLoadingData(false);
       })
-      .catch(() => setLoadingData(false));
+      .catch(() => {
+        setLoadingData(false);
+        alert("Booking Not Available: Could not connect to backend server inventory.");
+      });
 
     fetch(`${BASE_URL}/api/reviews/FLIGHT/${activeFlightId}`)
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setReviewsList(data))
-      .catch((err) => {
-        console.warn("Review API offline, defaulting to empty list.");
+      .catch(() => {
         setReviewsList([]);
       });
 
-  }, [activeFlightId, BASE_URL]);
+  }, [id, searchParams, BASE_URL]);
 
   const handleInPageFlightSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,6 +321,10 @@ export default function BookFlightPage() {
       alert("Please choose a valid travel departure calendar date.");
       return;
     }
+    if (!flight) {
+      alert("Booking Not Available: Selected flight route does not exist in the admin inventory.");
+      return;
+    }
     for (let i = 0; i < passengers.length; i++) {
       if (!passengers[i].name.trim()) {
         alert(`Please input a valid Full Name for Passenger #${i + 1}.`);
@@ -311,12 +351,10 @@ export default function BookFlightPage() {
     setShowPaymentModal(true);
   };
 
-  // Bulletproof Payment Handler with graceful fallback to prevent "Failed to fetch" crashes
   async function handlePaymentSubmit() {
     setLoadingPayment(true);
 
     try {
-      // 1. Create a mock booking object with the user's details
       const newBooking = {
         type: "Flight",
         bookingId: "bk_" + Math.random().toString(36).substring(2, 9),
@@ -324,7 +362,7 @@ export default function BookFlightPage() {
         quantity: passengers.length,
         totalPrice: totalAmount,
         cancelled: false,
-        passengerName: passengers[0]?.name || "Shankara",
+        passengerName: passengers[0]?.name || "Traveler",
         passengerAge: passengers[0]?.age || 26,
         seatPreference: passengers[0]?.seatNumber?.endsWith("A") || passengers[0]?.seatNumber?.endsWith("F") ? "Window" : "Aisle",
         travelDate: searchDate || "2026-07-15",
@@ -332,7 +370,6 @@ export default function BookFlightPage() {
         currency: "INR"
       };
 
-      // 2. Save it into localStorage so the profile dashboard can read it instantly
       const existingBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
       localStorage.setItem("userBookings", JSON.stringify([newBooking, ...existingBookings]));
 
@@ -440,6 +477,7 @@ export default function BookFlightPage() {
                     key={item._id || item.id || index}
                     onClick={() => {
                       setActiveFlightId(item._id || String(item.id));
+                      setFlight(item);
                       setHasSearchedInPage(false);
                     }}
                     className={`p-3 rounded-xl border flex items-center gap-4 cursor-pointer transition-all bg-slate-800/80 ${activeFlightId === item._id ? 'border-blue-500 bg-slate-800 shadow-md ring-1 ring-blue-500' : 'border-slate-700 hover:border-slate-500'}`}
@@ -451,7 +489,7 @@ export default function BookFlightPage() {
                       <p className="text-[10px] text-slate-500 font-mono mt-0.5">{item.timings}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-emerald-400 font-black text-xs">{formatPriceValue(item.price || 3500, item.from, item.to, item.nation)}</p>
+                      <p className="text-emerald-400 font-black text-xs">{formatPriceValue(item.price, item.from, item.to, item.nation)}</p>
                       <span className="text-[9px] bg-slate-700 text-white px-1.5 py-0.2 rounded font-bold uppercase block mt-1">Select</span>
                     </div>
                   </div>
@@ -468,11 +506,36 @@ export default function BookFlightPage() {
         {/* LEFT COLUMN: CORE CHECKOUT SEGMENTS & COMPLETE REVIEWS SYSTEM */}
         <div className="lg:col-span-2 space-y-6">
           
+          {/* Admin Flight Option Selector */}
+          {filteredSearchResults.length > 1 && (
+            <div className="bg-white border border-blue-200 rounded-lg shadow-sm p-4 text-left">
+              <h4 className="font-bold text-xs text-blue-900 uppercase mb-2">✈️ Select Admin Flight Option ({filteredSearchResults.length} available)</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {filteredSearchResults.map((opt) => (
+                  <div 
+                    key={opt._id || opt.id}
+                    onClick={() => {
+                      setFlight(opt);
+                      setActiveFlightId(opt._id || String(opt.id));
+                    }}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all flex justify-between items-center ${activeFlightId === (opt._id || opt.id) ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600' : 'border-gray-200 hover:bg-slate-50'}`}
+                  >
+                    <div>
+                      <p className="font-bold text-gray-900 text-xs">{opt.name}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">{opt.timings}</p>
+                    </div>
+                    <span className="font-black text-emerald-600 text-xs">{formatPriceValue(opt.price, opt.from, opt.to, opt.nation)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 text-left">
             <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
               <div>
                 <h2 className="text-lg font-bold flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-900 capitalize">
-                  <span>{flight ? `${flight.from} ➔ ${flight.to}` : "Paris ➔ Tokyo"}</span>
+                  <span>{flight ? `${flight.from} ➔ ${flight.to}` : `${searchFrom} ➔ ${searchTo}`}</span>
                   <div className="flex items-center text-sm tracking-tighter" style={{ color: "#FFD700" }}>
                     <span>★★★★★</span>
                     <span className="text-slate-400 font-black text-[10px] tracking-normal ml-1">(4.8 Overall Score)</span>
@@ -495,7 +558,7 @@ export default function BookFlightPage() {
             <div className="grid grid-cols-3 text-center py-4 my-2 relative">
               <div className="text-left">
                 <p className="text-base font-bold text-gray-900">{flight?.timings ? flight.timings.split("➔")[0] : "03:41 PM"}</p>
-                <p className="text-xs text-slate-400 mt-0.5 capitalize">{flight ? flight.from : "Paris"} Airport</p>
+                <p className="text-xs text-slate-400 mt-0.5 capitalize">{flight ? flight.from : searchFrom} Airport</p>
               </div>
               <div className="flex flex-col items-center justify-center px-4">
                 <p className="text-xs text-slate-400 font-semibold">3h 0m</p>
@@ -504,7 +567,7 @@ export default function BookFlightPage() {
               </div>
               <div className="text-right">
                 <p className="text-base font-bold text-gray-900">{flight?.timings ? flight.timings.split("➔")[1] : "06:41 PM"}</p>
-                <p className="text-xs text-slate-400 mt-0.5 capitalize">{flight ? flight.to : "Tokyo"} Airport</p>
+                <p className="text-xs text-slate-400 mt-0.5 capitalize">{flight ? flight.to : searchTo} Airport</p>
               </div>
             </div>
 
@@ -619,7 +682,7 @@ export default function BookFlightPage() {
               <span className="text-xs text-blue-500 cursor-pointer font-medium hover:underline">View Policy</span>
             </div>
             <div className="bg-slate-50 p-3 rounded-md flex items-center justify-between mb-4 text-xs">
-              <span className="font-semibold flex items-center gap-1 uppercase">✈️ {flight ? `${flight.from.slice(0,3)}-${flight.to.slice(0,3)}` : "PAR-TOK"}</span>
+              <span className="font-semibold flex items-center gap-1 uppercase">✈️ {flight ? `${flight.from.slice(0,3)}-${flight.to.slice(0,3)}` : `${searchFrom.slice(0,3)}-${searchTo.slice(0,3)}`}</span>
               <span className="font-bold text-gray-900">{formatPriceValue(calculatedBase, searchFrom, searchTo, flight?.nation)}</span>
             </div>
             <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-orange-400 to-red-400 rounded-full relative my-6">

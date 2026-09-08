@@ -127,26 +127,33 @@ export default function Home() {
     window.location.reload();
   };
 
-  // INSTANT ZERO-DELAY SEARCH ROUTING
+  // INSTANT DYNAMIC SEARCH ROUTING WITH QUERY PARAMS
   const handleSearchExecute = () => {
+    const queryParams = new URLSearchParams({
+      from: fromCity || "Paris",
+      to: toCity || "Tokyo",
+      date: travelDate,
+      travelers: travelers.toString()
+    });
+
     if (currentTab === "flights") {
-      router.push(`/book-flight/mock_flight_123`);
+      router.push(`/book-flight/search?${queryParams.toString()}`);
     } else if (currentTab === "hotels") {
-      router.push(`/book-hotel/luxury_palace_1`);
+      router.push(`/book-hotel/search?${queryParams.toString()}`);
     } else if (currentTab === "homestays") {
-      router.push(`/book-homestay/whispering_pines_1`);
+      router.push(`/book-homestay/search?${queryParams.toString()}`);
     } else if (currentTab === "holiday") {
-      router.push(`/book-holiday/tropical_bali_1`);
+      router.push(`/book-holiday/search?${queryParams.toString()}`);
     } else if (currentTab === "trains") {
-      router.push(`/book-train/rajdhani_1`);
+      router.push(`/book-train/search?${queryParams.toString()}`);
     } else if (currentTab === "buses") {
-      router.push(`/book-bus/vrl_sleeper_1`);
+      router.push(`/book-bus/search?${queryParams.toString()}`);
     } else if (currentTab === "tourism") {
-      router.push(`/book-tourism/eiffel_tower_1`);
+      router.push(`/book-tourism/search?${queryParams.toString()}`);
     } else if (currentTab === "food") {
-      router.push(`/book-food/gourmet_meal_1`);
+      router.push(`/book-food/search?${queryParams.toString()}`);
     } else {
-      router.push(`/book-flight/mock_flight_123`);
+      router.push(`/book-flight/search?${queryParams.toString()}`);
     }
   };
 
