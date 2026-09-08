@@ -11,8 +11,6 @@ export default function BookTourismPage() {
 
   // Distinct landmark images
   const touristImages = [
-    "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?auto=format&fit=crop&w=1200&q=80", // Eiffel Tower
-    "https://images.unsplash.com/photo-1543349689-9a4d826bee8e?auto=format&fit=crop&w=1200&q=80", // Louvre Museum
     "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80", // Seine River
     "https://images.unsplash.com/photo-1520939817895-060bdaf4fe1b?auto=format&fit=crop&w=1200&q=80"  // Arc de Triomphe
   ];
