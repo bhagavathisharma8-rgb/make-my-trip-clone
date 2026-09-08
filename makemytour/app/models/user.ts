@@ -1,7 +1,7 @@
-export class User{
+export class User {
     public id: string;
-    public firstName:string;
-    public lastName:string;
+    public firstName: string;
+    public lastName: string;
     public email: string;
     public password: string;
     public phoneNumber: string;
@@ -14,7 +14,6 @@ export class User{
         email: string,
         password: string,
         phoneNumber: string,
-
     ) {
         this.id = id;
         this.firstName = firstName;
@@ -23,8 +22,13 @@ export class User{
         this.password = password;
         this.phoneNumber = phoneNumber;
         this.passwordHash = this.hashPassword(password);
-
     }
-    public getFullName
 
+    public getFullName(): string {
+        return `${this.firstName} ${this.lastName}`.trim();
+    }
+
+    private hashPassword(password: string): string {
+        return password;
+    }
 }
