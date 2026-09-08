@@ -3,9 +3,8 @@ package com.makemytrip.makemytrip.services;
 import com.makemytrip.makemytrip.models.Users;
 import com.makemytrip.makemytrip.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 public class UserServices {
@@ -13,45 +12,50 @@ public class UserServices {
     @Autowired
     private UserRepository userRepository;
 
-    // Handles user signup registrations securely
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     public Users signup(Users user) {
-        // Keeping baseline mapping active without external encoding to match screen states
-        if (user.getRole() == null) {
-            user.setRole("USER");
+        if (user.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
         return userRepository.save(user);
     }
 
-    // Login validation helper routing logic
-    public Users login(String email, String password) {
+    public Users login(String email, String rawPassword) {
         Users user = userRepository.findByEmail(email);
-        if (user != null && user.getPassword().equals(password)) {
+        if (user != null && passwordEncoder.matches(rawPassword, user.getPassword())) {
             return user;
         }
-        return null;
+        throw new RuntimeException("Invalid email or password");
     }
 
-    // GET USER METADATA BY EMAIL QUERY STACK
     public Users getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
+        Users user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found with email: " + email);
+        }
+        return user;
     }
 
-    // PROCESS PROFILE DETAILS CHANGES SESSIONS UPDATE
-    public Users editprofile(String id, Users updatedUser) {
-        Optional<Users> userOptional = userRepository.findById(id);
+    public Users editprofile(String userId, Users updatedUser) {
+        Users existing = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
-        if (userOptional.isPresent()) {
-            Users user = userOptional.get();
-
-            // Sync mutated fields cleanly while leaving structural values untouched
-            user.setFirstName(updatedUser.getFirstName());
-            user.setLastName(updatedUser.getLastName());
-            user.setPhoneNumber(updatedUser.getPhoneNumber());
-
-            return userRepository.save(user);
+        if (updatedUser.getFirstName() != null) {
+            existing.setFirstName(updatedUser.getFirstName());
         }
-        return null;
+        if (updatedUser.getLastName() != null) {
+            existing.setLastName(updatedUser.getLastName());
+        }
+        if (updatedUser.getPhoneNumber() != null) {
+            existing.setPhoneNumber(updatedUser.getPhoneNumber());
+        }
+
+        return userRepository.save(existing);
+    }
+
+    public Users findById(String id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
     }
 }
-
-

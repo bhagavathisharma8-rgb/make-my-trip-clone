@@ -15,9 +15,27 @@ export default function BookHotelPage() {
   const totalAmount = (pricePerNight * rooms) + taxesAndFees - discount;
 
   const handleConfirmPayment = () => {
+    // 1. Create the hotel booking object for local storage persistence
+    const newBooking = {
+      type: "Hotel",
+      bookingId: "ht_" + Math.random().toString(36).substring(2, 9),
+      date: new Date().toLocaleDateString(),
+      quantity: rooms,
+      totalPrice: totalAmount,
+      cancelled: false,
+      passengerName: "Shankara",
+      currency: "INR"
+    };
+
+    // 2. Save it into localStorage so the profile dashboard can load it instantly
+    const existingBookings = JSON.parse(localStorage.getItem("userBookings") || "[]");
+    localStorage.setItem("userBookings", JSON.stringify([newBooking, ...existingBookings]));
+
     alert("Hotel Reservation Confirmed successfully!");
     setShowModal(false);
-    router.push("/");
+    
+    // 3. Redirect to profile to see the new hotel booking immediately
+    router.push("/profile");
   };
 
   return (
@@ -111,7 +129,7 @@ export default function BookHotelPage() {
               <span className="text-[10px] text-gray-400 font-medium">+ ₹ 527 taxes & fees</span>
             </div>
 
-            <button onClick={() => setShowModal(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded shadow text-xs uppercase tracking-wider">
+            <button onClick={() => setShowModal(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded shadow text-xs uppercase tracking-wider active:scale-95 transition-all">
               Book This Now
             </button>
           </div>
@@ -146,7 +164,7 @@ export default function BookHotelPage() {
                   </div>
                 </div>
               </div>
-              <button onClick={handleConfirmPayment} className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3 rounded shadow uppercase tracking-wide text-xs">
+              <button onClick={handleConfirmPayment} className="w-full bg-slate-900 hover:bg-black text-white font-bold py-3 rounded shadow uppercase tracking-wide text-xs active:scale-95 transition-all">
                 Proceed to Payment
               </button>
             </div>

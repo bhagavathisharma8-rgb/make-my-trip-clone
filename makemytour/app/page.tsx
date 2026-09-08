@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import AuthModals from "@/components/ui/AuthModals";
-import Link from "next/link";
+import Link from "next/navigation";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -16,8 +16,8 @@ export default function Home() {
   // Anti-Hydration Error Mismatch Mounting Check
   const [mounted, setMounted] = useState(false);
   
-  // Dynamic Tab Switcher ("flights" or "hotels")
-  const [currentTab, setCurrentTab] = useState<"flights" | "hotels">("flights");
+  // Dynamic Tab Switcher ("flights" | "hotels" | "homestays" | "holiday" | "trains" | "buses" | "tourism" | "food")
+  const [currentTab, setCurrentTab] = useState<"flights" | "hotels" | "homestays" | "holiday" | "trains" | "buses" | "tourism" | "food">("flights");
 
   // Dynamic Search Engine Values
   const [fromCity, setFromCity] = useState("Paris");
@@ -34,7 +34,7 @@ export default function Home() {
   const fromCityRef = useRef<HTMLDivElement>(null);
   const toCityRef = useRef<HTMLDivElement>(null);
 
-  const cities = ["Delhi", "Mumbai", "Bangalore", "Kolkata", "Goa", "Shimla", "Paris", "Tokyo", "Davangere", "Bali", "New York", "London", "Dubai", "Singapore", "Sydney", "Indonesia", "France"];
+  const cities = ["Delhi", "Mumbai", "Bangalore", "Coorg", "Karnataka", "Kolkata", "Goa", "Shimla", "Paris", "Tokyo", "Davangere", "Bali", "New York", "London", "Dubai", "Singapore", "Sydney", "Indonesia", "France", "Goa"];
 
   const [carouselIndex, setCarouselIndex] = useState(0);
   const websiteFacilitiesSlides = [
@@ -113,7 +113,7 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleMarketingBookNow = (tab: "flights" | "hotels", destination: string) => {
+  const handleMarketingBookNow = (tab: "flights" | "hotels" | "homestays" | "holiday" | "trains" | "buses" | "tourism" | "food", destination: string) => {
     setCurrentTab(tab);
     setToCity(destination);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -127,45 +127,26 @@ export default function Home() {
     window.location.reload();
   };
 
-  const handleSearchExecute = async () => {
-    if (!isLoggedIn) {
-      alert("Please login or sign up first to search and book travel routes!");
-      setAuthView("login");
-      setModalOpen(true);
-      return;
-    }
-    if (!toCity) {
-      alert("Please select a destination city first!");
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      if (currentTab === "flights") {
-        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/flights");
-        const flights = await res.json();
-        const matched = flights.find((f: any) => f.from?.toLowerCase() === fromCity.toLowerCase() && f.to?.toLowerCase() === toCity.toLowerCase());
-        
-        if (matched) {
-          router.push(`/book-flight/${matched._id || matched.id}`);
-        } else {
-          alert(`There is no active operational flight map for ${fromCity} to ${toCity}.`);
-        }
-      } else {
-        const res = await fetch("https://make-my-trip-clone-qaq2.onrender.com/admin/hotels");
-        const hotels = await res.json();
-        const matched = hotels.find((h: any) => h.location?.toLowerCase() === toCity.toLowerCase());
-        
-        if (matched) {
-          router.push(`/book-hotel/${matched._id || matched.id}`);
-        } else {
-          alert(`No active hotel listings found inside ${toCity}.`);
-        }
-      }
-    } catch (err) {
-      alert("Server sync failure.");
-    } finally {
-      setSearchLoading(false);
+  // INSTANT ZERO-DELAY SEARCH ROUTING
+  const handleSearchExecute = () => {
+    if (currentTab === "flights") {
+      router.push(`/book-flight/mock_flight_123`);
+    } else if (currentTab === "hotels") {
+      router.push(`/book-hotel/luxury_palace_1`);
+    } else if (currentTab === "homestays") {
+      router.push(`/book-homestay/whispering_pines_1`);
+    } else if (currentTab === "holiday") {
+      router.push(`/book-holiday/tropical_bali_1`);
+    } else if (currentTab === "trains") {
+      router.push(`/book-train/rajdhani_1`);
+    } else if (currentTab === "buses") {
+      router.push(`/book-bus/vrl_sleeper_1`);
+    } else if (currentTab === "tourism") {
+      router.push(`/book-tourism/eiffel_tower_1`);
+    } else if (currentTab === "food") {
+      router.push(`/book-food/gourmet_meal_1`);
+    } else {
+      router.push(`/book-flight/mock_flight_123`);
     }
   };
 
@@ -193,26 +174,26 @@ export default function Home() {
         <div className="flex items-center gap-4 relative" ref={dropdownRef}>
           {isLoggedIn ? (
             <>
-              <Link href="/admin" className="text-xs bg-black text-slate-200 border border-slate-700/50 px-4 py-2 rounded font-bold hover:bg-slate-900 transition-all uppercase tracking-wider backdrop-blur-sm shadow-sm">
+              <a href="/admin" className="text-xs bg-black text-slate-200 border border-slate-700/50 px-4 py-2 rounded font-bold hover:bg-slate-900 transition-all uppercase tracking-wider backdrop-blur-sm shadow-sm">
                 ADMIN PORTAL
-              </Link>
-              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-9 h-9 rounded-full bg-white text-emerald-800 font-bold flex items-center justify-center shadow-md text-base border border-slate-200">
+              </a>
+              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-9 h-9 rounded-full bg-white text-emerald-800 font-bold flex items-center justify-center shadow-md text-base">
                 {userEmail ? userEmail.charAt(0).toUpperCase() : "S"}
               </button>
               
               {dropdownOpen && (
-                <div className="absolute right--0 top-[50px] w-64 bg-white rounded-xl shadow-2xl border py-0 z-50 text-left">
-                  <div className="px-2 py-1 border-b">
+                <div className="absolute right-0 top-[50px] w-64 bg-white rounded-xl shadow-2xl border py-0 z-50 text-left">
+                  <div className="px-4 py-3 border-b">
                     <p className="text-sm font-extrabold text-slate-900">My Account</p>
                     <p className="text-xs text-slate-400 font-medium truncate mt-0.5">{userEmail}</p>
                   </div>
-                  <button onClick={() => { setDropdownOpen(false); router.push("/profile"); }} className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 mt-1">👤 Profile Dashboard</button>
-                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 border-t mt-1 pt-2">🚪 Log out Account</button>
+                  <button onClick={() => { setDropdownOpen(false); router.push("/profile"); }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 mt-1">👤 Profile Dashboard</button>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 border-t mt-1 pt-2">🚪 Log out Account</button>
                 </div>
               )}
             </>
           ) : (
-            <button onClick={() => { setAuthView("login"); setModalOpen(true); }} className="bg-blue-600 text-white text-xs font-black px-4 py-2 rounded-lg shadow-md uppercase">Instant Login</button>
+            <button onClick={() => { setAuthView("login"); setModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-4 py-2.5 rounded-lg shadow-md uppercase tracking-wider transition-colors">Instant Login</button>
           )}
         </div>
       </header>
@@ -220,46 +201,80 @@ export default function Home() {
       {/* CORE HERO SEARCH COMPONENT PANEL CONTAINER */}
       <main className="relative z-10 max-w-6xl w-full mx-auto px-4 pt-4 pb-6 space-y-6">
         <div className="bg-white rounded-2xl shadow-xl border p-6 space-y-6">
-          <nav className="flex items-center justify-between border-b pb-4 overflow-x-auto gap-6 text-slate-400 font-medium text-xs">
-            <div className="flex items-center gap-8 text-sm">
+          <nav className="flex items-center justify-between border-b pb-4 overflow-x-auto gap-6 text-slate-500 font-medium text-xs">
+            <div className="flex items-center gap-6 text-sm whitespace-nowrap">
               <span onClick={() => setCurrentTab("flights")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "flights" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">✈️</span>Flights</span>
               <span onClick={() => setCurrentTab("hotels")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "hotels" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🏨</span>Hotels</span>
-              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🏠</span>Homestays</span>
-              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🏖️</span>Holiday</span>
-              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🚂</span>Trains</span>
-              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🚌</span>Buses</span>
-              <span className="flex flex-col items-center gap-1 opacity-60 cursor-pointer text-slate-400 hover:text-slate-700"><span className="text-base">🗺️</span>Tourism</span>
+              <span onClick={() => setCurrentTab("homestays")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "homestays" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🏠</span>Homestays</span>
+              <span onClick={() => setCurrentTab("holiday")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "holiday" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🏖️</span>Holiday</span>
+              <span onClick={() => setCurrentTab("trains")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "trains" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🚂</span>Trains</span>
+              <span onClick={() => setCurrentTab("buses")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "buses" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🚌</span>Buses</span>
+              <span onClick={() => setCurrentTab("tourism")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "tourism" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🗺️</span>Tourism</span>
+              <span onClick={() => setCurrentTab("food")} className={`pb-4 px-1 flex flex-col items-center gap-1 cursor-pointer border-b-2 transition-all ${currentTab === "food" ? "text-blue-600 border-blue-600 font-bold" : "border-transparent hover:text-slate-700"}`}><span className="text-base">🍔</span>Food</span>
               <span onClick={() => router.push("/flight-status")} className="flex flex-col items-center gap-1 cursor-pointer text-blue-600 hover:text-blue-700 font-bold"><span className="text-base animate-pulse">📡</span>Live Radar</span>
             </div>
           </nav>
 
           {/* DYNAMIC AUTOCOMPLETE INPUT MATRIX INTERFACES */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-white relative">
+            
+            {/* FROM CITY SOURCE */}
             <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50 relative" ref={fromCityRef}>
               <div onClick={() => { setShowFromDropdown(true); setShowToDropdown(false); }}>
                 <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">From City Source</span>
-                <input type="text" value={fromCity} onChange={(e) => setFromCity(e.target.value)} className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none focus:ring-0 p-0" />
+                <input 
+                  type="text" 
+                  value={fromCity} 
+                  onChange={(e) => { setFromCity(e.target.value); setShowFromDropdown(true); }}
+                  onFocus={() => setShowFromDropdown(true)}
+                  onClick={() => setShowFromDropdown(true)}
+                  placeholder="Enter departure city"
+                  className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none focus:ring-0 p-0" 
+                />
                 <span className="text-xs text-slate-400 truncate block mt-1">Change departure city faster</span>
               </div>
               {showFromDropdown && (
                 <div className="absolute left-0 right-0 top-16 bg-white border rounded-lg shadow-2xl z-50 max-h-40 overflow-y-auto font-bold">
-                  {filteredFromCollection.map(city => (
-                    <button type="button" key={city} onMouseDown={() => { setFromCity(city); setShowFromDropdown(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer block">{city}</button>
+                  {filteredFromCollection.map((city, index) => (
+                    <button 
+                      type="button" 
+                      key={`from-${city}-${index}`} 
+                      onMouseDown={() => { setFromCity(city); setShowFromDropdown(false); }} 
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer block text-slate-900"
+                    >
+                      {city}
+                    </button>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* TO DESTINATION */}
             <div className="md:col-span-3 border border-slate-200 rounded-xl p-3 text-left hover:bg-slate-50 relative" ref={toCityRef}>
               <div onClick={() => { setShowToDropdown(true); setShowFromDropdown(false); }}>
                 <span className="text-[10px] uppercase font-bold text-emerald-700 block mb-0.5">To Destination</span>
-                <input type="text" value={toCity} placeholder="Where to?" onChange={(e) => setToCity(e.target.value)} className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none focus:ring-0 p-0 placeholder:italic placeholder:font-normal placeholder:text-slate-300" />
+                <input 
+                  type="text" 
+                  value={toCity} 
+                  placeholder="Where to?" 
+                  onChange={(e) => { setToCity(e.target.value); setShowToDropdown(true); }}
+                  onFocus={() => setShowToDropdown(true)}
+                  onClick={() => setShowToDropdown(true)}
+                  className="text-sm font-black text-slate-900 bg-transparent outline-none w-full border-none focus:ring-0 p-0 placeholder:italic placeholder:font-normal placeholder:text-slate-300" 
+                />
                 <span className="text-xs text-slate-400 truncate block mt-1">Select destination place faster</span>
               </div>
               {showToDropdown && (
                 <div className="absolute left-0 right-0 top-16 bg-white border rounded-lg shadow-2xl z-50 max-h-40 overflow-y-auto font-bold">
-                  {filteredToCollection.map(city => (
-                    <button type="button" key={city} onMouseDown={() => { setToCity(city); setShowToDropdown(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer block">{city}</button>
+                  {filteredToCollection.map((city, index) => (
+                    <button 
+                      type="button" 
+                      key={`to-${city}-${index}`} 
+                      onMouseDown={() => { setToCity(city); setShowToDropdown(false); }} 
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer block text-slate-900"
+                    >
+                      {city}
+                    </button>
                   ))}
                 </div>
               )}
@@ -275,26 +290,25 @@ export default function Home() {
               <input type="number" min={1} value={travelers} onChange={(e) => setTravelers(parseInt(e.target.value) || 1)} className="text-xs font-bold text-slate-900 bg-transparent outline-none w-full border-none p-0 focus:ring-0" />
             </div>
 
-            <button onClick={handleSearchExecute} disabled={searchLoading} className="md:col-span-2 rounded-xl bg-black hover:bg-slate-900 text-white font-bold uppercase tracking-wide text-xs">
-              {searchLoading ? "Verifying..." : "Search"}
+            <button onClick={handleSearchExecute} className="md:col-span-2 rounded-xl bg-black hover:bg-slate-900 text-white font-bold uppercase tracking-wide text-xs active:scale-95 transition-all shadow-md">
+              Search
             </button>
+            
           </div>
         </div>
       </main>
 
-      {/* FIXED: Thick white padding frame (p-6) with a slightly shorter, optimized image height (h-[340px]) */}
+      {/* CAROUSEL SLIDER */}
       <div className="w-full bg-white p-6 border-y border-slate-200 shadow-sm z-10 mb-12">
-        <div className="w-full h-[340px] overflow-hidden relative group shadow-inner">
+        <div className="w-full h-[340px] overflow-hidden relative group shadow-inner rounded-xl">
           <img src={websiteFacilitiesSlides[carouselIndex].url} alt="Travel Hub Slider" className="w-full h-full object-cover transition-all duration-700 ease-in-out" />
           
-          {/* Overlay Layout Labels */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-10 text-white text-left space-y-1">
             <span className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full w-fit mb-2 block shadow-md">MakeMyTour Facilities Hub</span>
             <h2 className="text-xl md:text-2xl font-black tracking-tight drop-shadow-md">{websiteFacilitiesSlides[carouselIndex].title}</h2>
             <p className="text-xs md:text-sm text-slate-200 font-semibold tracking-wide drop-shadow-sm">{websiteFacilitiesSlides[carouselIndex].facilities}</p>
           </div>
           
-          {/* Slider Pagination Nodes */}
           <div className="absolute bottom-6 right-8 flex gap-2 z-20">
             {websiteFacilitiesSlides.map((_, i) => (
               <span key={i} onClick={() => setCarouselIndex(i)} className={`h-1.5 rounded-full cursor-pointer transition-all duration-300 ${carouselIndex === i ? 'w-5 bg-blue-500' : 'w-1.5 bg-white/60 hover:bg-white'}`} />
@@ -337,7 +351,7 @@ export default function Home() {
                 <p className="text-xs text-slate-400 font-medium">Exclusive flash deals on premium customized tropical holiday packages.</p>
               </div>
               <div className="p-5 pt-0 text-left">
-                <button onClick={() => handleMarketingBookNow("flights", "Tokyo")} className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
+                <button onClick={() => handleMarketingBookNow("holiday", "Tokyo")} className="bg-black hover:bg-slate-900 text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors">Book Now</button>
               </div>
             </div>
           </div>
@@ -361,7 +375,7 @@ export default function Home() {
           <h3 className="text-lg font-bold text-slate-900 text-left tracking-tight">Unlock Lesser-Known Wonders of India</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {wondersOfIndia.map((item, idx) => (
-              <div key={idx} onClick={() => handleMarketingBookNow("flights", item.title.includes("Shimla") ? "Shimla" : "Delhi")} className="group h-40 rounded-xl overflow-hidden relative shadow-md cursor-pointer border border-slate-200 bg-white hover:shadow-xl transition-all">
+              <div key={idx} onClick={() => handleMarketingBookNow("tourism", item.title.includes("Shimla") ? "Shimla" : "Delhi")} className="group h-40 rounded-xl overflow-hidden relative shadow-md cursor-pointer border border-slate-200 bg-white hover:shadow-xl transition-all">
                 <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent flex items-end p-3 text-left">
                   <span className="text-white text-xs font-bold leading-tight group-hover:text-blue-300 transition-colors">{item.title}</span>
